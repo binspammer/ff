@@ -1,0 +1,12 @@
+QMAKE_CXXFLAGS += -std=c++11
+
+FFMPEG_HOME=/opt/ffmpeg
+LIBAV_HOME=/usr/local
+DEV=$$FFMPEG_HOME
+
+unix:!macx: LIBS += -L$$DEV/lib/ -lavcodec -lavfilter -lavformat -lavutil -lswscale -lswresample
+
+INCLUDEPATH += $$DEV/include
+DEPENDPATH += $$DEV/include
+
+message($$DEV)
