@@ -39,12 +39,8 @@ using namespace std;
 
 int sws_flags = SWS_BICUBIC;
 
-//
-// audio output 
-
 float t, tincr, tincr2;
 int16_t *samples;
-int audio_input_frame_size;
 
 // Add an output stream. 
 AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_id)
@@ -112,94 +108,6 @@ AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_
 }
 
 //
-// audio output 
-
-void open_audio(AVFormatContext *oc, AVCodec *codec, AVStream *st)
-{
-   AVCodecContext *c;
-   int ret;
-   
-   c = st->codec;
-   
-   // open it 
-   ret = avcodec_open2(c, codec, NULL);
-   if (ret < 0) 
-      throw std::runtime_error("Could not open audio codec");
-   
-   // init signal generator 
-   t     = 0;
-   tincr = 2 * M_PI * 110.0 / c->sample_rate;
-   // increment frequency by 110 Hz per second 
-   tincr2 = 2 * M_PI * 110.0 / c->sample_rate / c->sample_rate;
-   
-   if (c->codec->capabilities & CODEC_CAP_VARIABLE_FRAME_SIZE)
-      audio_input_frame_size = 10000;
-   else
-      audio_input_frame_size = c->frame_size;
-   samples = (int16_t*)av_malloc(audio_input_frame_size *
-                                 av_get_bytes_per_sample(c->sample_fmt) *
-                                 (c->channels));
-   if (!samples) 
-      throw std::runtime_error("Could not allocate audio samples buffer");
-}
-
-// Prepare a 16 bit dummy audio frame of 'frame_size' samples and 'nb_channels' channels. 
-void get_audio_frame(int16_t *samples, int frame_size, int nb_channels)
-{
-   int j, i, v;
-   int16_t *q;
-   
-   q = samples;
-   for (j = 0; j < frame_size; j++) {
-      v = (int)(sin(t) * 10000);
-      for (i = 0; i < nb_channels; i++)
-         *q++ = v;
-      t     += tincr;
-      tincr += tincr2;
-   }
-}
-
-void write_audio_frame(AVFormatContext *oc, AVStream *st)
-{
-   AVCodecContext *c;
-   AVPacket pkt; 
-   pkt.data = nullptr; pkt.size = 0; // data and size must be 0;
-   AVFrame *frame = avcodec_alloc_frame();
-   int got_packet, ret;
-   
-   av_init_packet(&pkt);
-   c = st->codec;
-   
-   get_audio_frame(samples, audio_input_frame_size, c->channels);
-   frame->nb_samples = audio_input_frame_size;
-   avcodec_fill_audio_frame(frame, c->channels, c->sample_fmt, (uint8_t *)samples,
-                audio_input_frame_size * av_get_bytes_per_sample(c->sample_fmt) * c->channels, 1);
-   
-   ret = avcodec_encode_audio2(c, &pkt, frame, &got_packet);
-   if (ret < 0) 
-      throw std::runtime_error("Error encoding audio frame");
-   
-   if (!got_packet)
-      return;
-   
-   pkt.stream_index = st->index;
-   
-   // Write the compressed frame to the media file. 
-   ret = av_interleaved_write_frame(oc, &pkt);
-   if (ret != 0) 
-      throw std::runtime_error("Error while writing audio frame");
-   
-   avcodec_free_frame(&frame);
-}
-
-void close_audio(AVFormatContext *oc, AVStream *st)
-{
-   avcodec_close(st->codec);
-   
-   av_free(samples);
-}
-
-//
 // video output 
 
 AVFrame *frame;
@@ -208,36 +116,31 @@ int frame_count;
 
 void open_video(AVFormatContext *oc, AVCodec *codec, AVStream *st)
 {
-   int ret;
    AVCodecContext *c = st->codec;
    
    av_dump_format(oc, 0, NULL, 1);
    
    // open the codec 
-   ret = avcodec_open2(c, codec, NULL);
-   if (ret < 0) 
+   if ( avcodec_open2(c, codec, NULL)  < 0 )
       throw std::runtime_error("Could not open video codec");
    
    // allocate and init a re-usable frame 
-   frame = avcodec_alloc_frame();
-   if (!frame) 
+   if ( !avcodec_alloc_frame() )
       throw std::runtime_error("Could not allocate video frame");
    
    // Allocate the encoded raw picture. 
-   ret = avpicture_alloc(&dst_picture, c->pix_fmt, c->width, c->height);
-   if (ret < 0) 
+   if( avpicture_alloc(&dst_picture, c->pix_fmt, c->width, c->height) <0 )
       throw std::runtime_error("Could not allocate picture");
    
    // If the output format is not YUV420P, then a temporary YUV420P picture
    // is needed too. It is then converted to the required * output format. 
-   if (c->pix_fmt != AV_PIX_FMT_YUV422P) {
-      ret = avpicture_alloc(&src_picture, AV_PIX_FMT_YUV422P, c->width, c->height);
-      if (ret < 0) 
+   if (c->pix_fmt != AV_PIX_FMT_YUV422P
+      && avpicture_alloc(&src_picture, AV_PIX_FMT_YUV422P, c->width, c->height) <0 ) 
          throw std::runtime_error("Could not allocate temporary picture");
-   }
    
    // copy data and linesize picture pointers to frame 
-   *((AVPicture *)frame) = dst_picture;
+//   * reinterpret_cast<AVPicture*>(frame) = dst_picture;
+   frame = reinterpret_cast<AVFrame*>(&dst_picture);
 }
 
 // Prepare a dummy image. 
@@ -264,32 +167,23 @@ void fill_yuv_image(AVPicture *pict, int frame_index, int width, int height)
 void write_video_frame(AVFormatContext *oc, AVStream *st)
 {
    int ret;
-   struct SwsContext *sws_ctx;
    AVCodecContext *c = st->codec;
    
-   if (frame_count >= STREAM_NB_FRAMES) {
-      /* No more frames to compress. The codec has a latency of a few frames if using
-         * B-frames, so we get the last frames by passing the same picture again. */
-   } 
-   else {
+   if (frame_count < STREAM_NB_FRAMES) 
       if (c->pix_fmt != AV_PIX_FMT_YUV422P) {
          // as we only generate a YUV420P picture, we must 
          // convert it to the codec pixel format if needed 
-         if (!sws_ctx) {
-            sws_ctx = sws_getContext(c->width, c->height, AV_PIX_FMT_YUV422P,
-                                     c->width, c->height, c->pix_fmt,
-                                     sws_flags, NULL, NULL, NULL);
+            struct SwsContext *sws_ctx = sws_getContext(c->width, c->height, AV_PIX_FMT_YUV422P,
+                                     c->width, c->height, c->pix_fmt, sws_flags, NULL, NULL, NULL);
             if (!sws_ctx) 
                throw std::runtime_error("Could not initialize the conversion context\n");
-         }
+            
          fill_yuv_image(&src_picture, frame_count, c->width, c->height);
          sws_scale(sws_ctx, (const uint8_t * const *)src_picture.data, 
                    src_picture.linesize, 0, c->height, dst_picture.data, dst_picture.linesize);
       } 
-      else {
+      else 
          fill_yuv_image(&dst_picture, frame_count, c->width, c->height);
-      }
-   }
    
    if (oc->oformat->flags & AVFMT_RAWPICTURE) {
       // Raw video case - directly store the picture in the packet 
@@ -388,21 +282,15 @@ try
    // Add the audio and video streams using the default format codecs
    // and initialize the codecs. 
    video_st = NULL;
-   audio_st = NULL;
    
    if (fmt->video_codec != AV_CODEC_ID_NONE) 
       video_st = add_stream(oc, &video_codec, fmt->video_codec);
-   
-   if (fmt->audio_codec != AV_CODEC_ID_NONE) 
-      audio_st = add_stream(oc, &audio_codec, fmt->audio_codec);
    
    
    // Now that all the parameters are set, we can open the audio and
    // video codecs and allocate the necessary encode buffers.
    if (video_st)
       open_video(oc, video_codec, video_st);
-   if (audio_st)
-      open_audio(oc, audio_codec, audio_st);
    
    av_dump_format(oc, 0, filename, 1);
    
@@ -414,8 +302,7 @@ try
    }
    
    // Write the stream header, if any. 
-   ret = avformat_write_header(oc, NULL);
-   if (ret < 0) 
+   if (avformat_write_header(oc, NULL) < 0) 
       throw std::runtime_error("Error occurred when opening output file");
    
    if (frame)
@@ -424,23 +311,16 @@ try
    for (;;) 
    {
       // Compute current audio and video time. 
-      if (audio_st)
-         audio_pts = (double)audio_st->pts.val * audio_st->time_base.num / audio_st->time_base.den;
-      else
-         audio_pts = 0.0;
-      
       if (video_st)
          video_pts = (double)video_st->pts.val * video_st->time_base.num / video_st->time_base.den;
       else
          video_pts = 0.0;
       
-      if ((!audio_st || audio_pts >= STREAM_DURATION) && (!video_st || video_pts >= STREAM_DURATION))
+      if (!video_st || video_pts >= STREAM_DURATION)
          break;
       
       // write interleaved audio and video frames 
-      if (!video_st || (video_st && audio_st && audio_pts < video_pts))
-         write_audio_frame(oc, audio_st);
-      else {
+      if (video_st ) {
          write_video_frame(oc, video_st);
          frame->pts += av_rescale_q(1, video_st->codec->time_base, video_st->time_base);
       }
@@ -454,8 +334,6 @@ try
    // Close each codec. 
    if (video_st)
       close_video(oc, video_st);
-   if (audio_st)
-      close_audio(oc, audio_st);
    
    if (!(fmt->flags & AVFMT_NOFILE))
       // Close the output file. 

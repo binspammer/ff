@@ -9,4 +9,4 @@ unix:!macx: LIBS += -L$$DEV/lib/ -lavcodec -lavfilter -lavformat -lavutil -lswsc
 INCLUDEPATH += $$DEV/include
 DEPENDPATH += $$DEV/include
 
-message($$DEV)
+message(DEV=$$DEV)
