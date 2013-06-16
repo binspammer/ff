@@ -3,4 +3,5 @@ TEMPLATE = subdirs
 SUBDIRS += \
     muxing \
     demuxing \
-    filtering
+    filtering \
+    remuxing
