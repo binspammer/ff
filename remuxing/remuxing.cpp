@@ -12,10 +12,10 @@ int main(int argc, char **argv)
       exit(1);
    }
    
-   Demuxer demuxer(argv[1]);
+//   Demuxer demuxer(argv[1]);
+//   demuxer.demux();
    Muxer muxer(argv[2]);
-   demuxer.demux();
-   
+   muxer.mux();
    return 0;
 }
 

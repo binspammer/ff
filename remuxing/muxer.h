@@ -45,26 +45,26 @@ public:
    int mux();
    
 private:
-   AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_id);
-   void open_video(AVFormatContext *oc, AVCodec *codec, AVStream *st);
-   void fill_yuv_image(AVPicture *pict, int frame_index, int width, int height);
-   void write_video_frame(AVFormatContext *oc, AVStream *st);   
-   void close_video(AVFormatContext *oc, AVStream *st);
+   AVStream *addStream(AVFormatContext *_oc, AVCodec **codec, enum AVCodecID codec_id);
+   void openVideo(AVFormatContext *_oc, AVCodec *codec, AVStream *st);
+   void fillYUVImage(AVPicture *pict, int frame_index, int width, int height);
+   void writeVideoFrame(AVFormatContext *_oc, AVStream *st);
+   void closeVideo(AVFormatContext *_oc, AVStream *st);
    
    
-   int sws_flags = SWS_BICUBIC;   
-   float t, tincr, tincr2;
-   int16_t *samples;
-   AVFrame *frame;
-   AVOutputFormat *fmt;
-   AVFormatContext *oc;
-   AVPicture src_picture, dst_picture;
-   AVStream *video_st;
-   AVCodec *video_codec;
-   double video_pts;
-   const char *filename;
-   int frame_count;
-   int ret;
+   int _sws_flags = SWS_BICUBIC;
+   float _t, _tincr, _incr2;
+   int16_t *_samples;
+   AVFrame *_frame;
+   AVOutputFormat *_fmt;
+   AVFormatContext *_oc;
+   AVPicture _src_picture, _dst_picture;
+   AVStream *_video_st;
+   AVCodec *_video_codec;
+   double _video_pts;
+   const char *_filename;
+   int _frame_count;
+   int _ret;
    
 };
 

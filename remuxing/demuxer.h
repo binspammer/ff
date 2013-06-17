@@ -42,24 +42,25 @@ public:
    void demux();
    
 private: 
-   int decode_packet(int *got_frame, int cached);
-   int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type);
-   int get_format_from_sample_fmt(const char **fmt, enum AVSampleFormat sample_fmt);
-   AVFormatContext *fmt_ctx = NULL;
-   AVCodecContext *video_dec_ctx = NULL;
-   AVStream *video_stream = NULL;
-   const char *src_filename = NULL;
-   const char *video_dst_filename = NULL;
-   FILE *video_dst_file = NULL;
+   int decodePacket(int *got_frame, int cached);
+   int openCodecContext(int *stream_idx, AVFormatContext *_fmt_ctx, enum AVMediaType type);
+   int getFormatFromSampleFmt(const char **fmt, enum AVSampleFormat sample_fmt);
+
+   AVFormatContext *_fmt_ctx = NULL;
+   AVCodecContext *_video_dec_ctx = NULL;
+   AVStream *_video_stream = NULL;
+   const char *_src_filename = NULL;
+   const char *_video_dst_filename = NULL;
+   FILE *_video_dst_file = NULL;
    
-   uint8_t *video_dst_data[4] = {NULL};
-   int      video_dst_linesize[4];
-   int video_dst_bufsize;
+   uint8_t *_video_dst_data[4] = {NULL};
+   int      _video_dst_linesize[4];
+   int _video_dst_bufsize;
    
-   int video_stream_idx = -1;
-   AVFrame *frame = NULL;
-   AVPacket pkt;
-   int video_frame_count = 0;
+   int _video_stream_idx = -1;
+   AVFrame *_frame = NULL;
+   AVPacket _pkt;
+   int _video_frame_count = 0;
 };
 
 #endif // DEMUXER_HPP
