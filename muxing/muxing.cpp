@@ -246,9 +246,9 @@ try
 {
    AVOutputFormat *fmt;
    AVFormatContext *oc;
-   AVStream *audio_st, *video_st;
-   AVCodec *audio_codec, *video_codec;
-   double audio_pts, video_pts;
+   AVStream *video_st;
+   AVCodec *video_codec;
+   double video_pts;
    int ret;
    const char *filename;
    
