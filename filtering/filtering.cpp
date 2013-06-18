@@ -154,7 +154,7 @@ int initFilters(const char *filtersDescr)
 }
 
 // Add an output stream.
-AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_id)
+AVStream *add_stream(AVFormatContext *_oc, AVCodec **codec, enum AVCodecID codec_id)
 {
    AVCodecContext *c;
    AVStream *st;
@@ -164,11 +164,11 @@ AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_
    if (!(*codec))
       throw std::runtime_error("Could not find encoder");
 
-   st = avformat_new_stream(oc, *codec);
+   st = avformat_new_stream(_oc, *codec);
    if (!st)
       throw std::runtime_error("Could not allocate stream");
 
-   st->id = oc->nb_streams-1;
+   st->id = _oc->nb_streams-1;
    c = st->codec;
 
    if ((*codec)->type == AVMEDIA_TYPE_VIDEO) {
@@ -199,17 +199,17 @@ AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_
    }
 
    // Some formats want stream headers to be separate.
-   if (oc->oformat->flags & AVFMT_GLOBALHEADER)
+   if (_oc->oformat->flags & AVFMT_GLOBALHEADER)
       c->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
    return st;
 }
 
-void open_video(AVFormatContext *oc, AVCodec *codec, AVStream *st)
+void open_video(AVFormatContext *_oc, AVCodec *codec, AVStream *st)
 {
    AVCodecContext *c = st->codec;
 
-   av_dump_format(oc, 0, NULL, 1);
+   av_dump_format(_oc, 0, NULL, 1);
 
    // open the codec
    if ( avcodec_open2(c, codec, NULL)  < 0 )
@@ -234,7 +234,7 @@ void open_video(AVFormatContext *oc, AVCodec *codec, AVStream *st)
    _frame = reinterpret_cast<AVFrame*>(&_dst_picture);
 }
 
-void write_video_frame(AVFormatContext *oc, AVStream *st)
+void write_video_frame(AVFormatContext *_oc, AVStream *st)
 {
    int ret;
    AVCodecContext *c = st->codec;
@@ -255,7 +255,7 @@ void write_video_frame(AVFormatContext *oc, AVStream *st)
 //      else
 //         fill_yuv_image(&_dst_picture, _frame_count, c->width, c->height);
 
-   if (oc->oformat->flags & AVFMT_RAWPICTURE) {
+   if (_oc->oformat->flags & AVFMT_RAWPICTURE) {
       // Raw video case - directly store the picture in the packet
       AVPacket pkt;
       av_init_packet(&pkt);
@@ -265,7 +265,7 @@ void write_video_frame(AVFormatContext *oc, AVStream *st)
       pkt.data          = _dst_picture.data[0];
       pkt.size          = sizeof(AVPicture);
 
-      ret = av_interleaved_write_frame(oc, &pkt);
+      ret = av_interleaved_write_frame(_oc, &pkt);
    }
    else {
       // encode the image
@@ -287,7 +287,7 @@ void write_video_frame(AVFormatContext *oc, AVStream *st)
          pkt.stream_index = st->index;
 
          // Write the compressed _frame to the media file.
-         ret = av_interleaved_write_frame(oc, &pkt);
+         ret = av_interleaved_write_frame(_oc, &pkt);
       }
       else
          ret = 0;
@@ -299,7 +299,7 @@ void write_video_frame(AVFormatContext *oc, AVStream *st)
    _frame_count++;
 }
 
-void close_video(AVFormatContext *oc, AVStream *st)
+void close_video(AVFormatContext *_oc, AVStream *st)
 {
    avcodec_close(st->codec);
    av_free(_src_picture.data[0]);
@@ -316,16 +316,16 @@ try
    int ret;
    AVPacket packet;
    int _got_frame;
-   
+
    AVOutputFormat *_fmt;
-   AVFormatContext *oc;
+   AVFormatContext *_oc;
    AVStream *_video_st;
    AVCodec *_video_codec;
    double _video_pts;
 //   int ret;
    const char *_filename;
 
-   AVFrame *_frame = avcodec_alloc_frame();
+   /*AVFrame **/_frame = avcodec_alloc_frame();
 
    if (!_frame) {
       perror("Could not allocate _frame");
@@ -351,37 +351,37 @@ try
 
 //   _fmt = av_guess_format("mp4", NULL, NULL);
    // allocate the output media context
-   avformat_alloc_output_context2(&oc, NULL, "dnxhd", NULL);
-//   avformat_alloc_output_context2(&oc, NULL, NULL, _filename);
-   if (!oc) {
+   avformat_alloc_output_context2(&_oc, NULL, "dnxhd", NULL);
+//   avformat_alloc_output_context2(&_oc, NULL, NULL, _filename);
+   if (!_oc) {
       std::cout <<"Could not deduce output format from file extension: using MPEG" <<std::endl;
-      avformat_alloc_output_context2(&oc, NULL, "mpeg", _filename);
+      avformat_alloc_output_context2(&_oc, NULL, "mpeg", _filename);
    }
-   if (!oc)
+   if (!_oc)
       return 1;
-   _fmt = oc->oformat;
+   _fmt = _oc->oformat;
 
    // Add video streams using the default format codecs and initialize the codecs.
    _video_st = NULL;
 //   _fmt->video_codec = AV_CODEC_ID_DNXHD;
    if (_fmt->video_codec != AV_CODEC_ID_NONE)
-      _video_st = add_stream(oc, &_video_codec, _fmt->video_codec);
+      _video_st = add_stream(_oc, &_video_codec, _fmt->video_codec);
    // Now that all the parameters are set, we can open the video
    // codecs and allocate the necessary encode buffers.
    if (_video_st)
-      open_video(oc, _video_codec, _video_st);
+      open_video(_oc, _video_codec, _video_st);
 
-   av_dump_format(oc, 0, _filename, 1);
+   av_dump_format(_oc, 0, _filename, 1);
 
    // open the output file, if needed
    if (!(_fmt->flags & AVFMT_NOFILE)) {
-      ret = avio_open(&oc->pb, _filename, AVIO_FLAG_WRITE);
+      ret = avio_open(&_oc->pb, _filename, AVIO_FLAG_WRITE);
       if (ret < 0)
          throw std::runtime_error("Could not open file");
    }
 
    // Write the stream header, if any.
-   if (avformat_write_header(oc, NULL) < 0)
+   if (avformat_write_header(_oc, NULL) < 0)
       throw std::runtime_error("Error occurred when opening output file");
 
    if (_frame)
@@ -423,7 +423,7 @@ try
                  if (_video_st ) {
                    *_dst_picture.data = *picref->data;
                    *_dst_picture.linesize = *picref->linesize;
-                    write_video_frame(oc, _video_st);
+                    write_video_frame(_oc, _video_st);
                     _frame->pts += av_rescale_q(1, _video_st->codec->time_base, _video_st->time_base);
                  }
 //                  displayPicref(picref, _bufferSinkCtx->inputs[0]->time_base);
@@ -440,18 +440,19 @@ end:
    if (_decCtx)
       avcodec_close(_decCtx);
    avformat_close_input(&_fmtCtx);
+//   av_freep(&_frame);
    av_freep(&_frame);
 
    // Close each codec.
    if (_video_st)
-      close_video(oc, _video_st);
+      close_video(_oc, _video_st);
 
    if (!(_fmt->flags & AVFMT_NOFILE))
       // Close the output file.
-      avio_close(oc->pb);
+      avio_close(_oc->pb);
 
    // free the stream
-   avformat_free_context(oc);
+   avformat_free_context(_oc);
 
    if (ret < 0 && ret != AVERROR_EOF) {
       char buf[1024];
