@@ -289,6 +289,7 @@ try
    
    // Now that all the parameters are set, we can open the audio and
    // video codecs and allocate the necessary encode buffers.
+//   fmt->video_codec = AV_CODEC_ID_DNXHD;
    if (video_st)
       open_video(oc, video_codec, video_st);
    
