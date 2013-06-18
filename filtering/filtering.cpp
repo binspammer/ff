@@ -61,6 +61,11 @@ int16_t *_samples;
 AVFrame *_frame;
 AVPicture _src_picture, _dst_picture;
 int _frame_count;
+double _video_pts;
+const char *_filename;
+AVCodec *_video_codec;
+AVOutputFormat *_fmt;
+int _got_frame;
 
 int openInputFile(const char *_filename)
 {
@@ -307,25 +312,20 @@ void close_video(AVFormatContext *_oc, AVStream *st)
    av_free(_frame);
 }
 
+void close_all()
+{
 
+}
 
 int
 main(int argc, char **argv)
 try
 {
    int ret;
-   AVPacket packet;
-   int _got_frame;
-
-   AVOutputFormat *_fmt;
    AVFormatContext *_oc;
    AVStream *_video_st;
-   AVCodec *_video_codec;
-   double _video_pts;
-//   int ret;
-   const char *_filename;
 
-   /*AVFrame **/_frame = avcodec_alloc_frame();
+   _frame = avcodec_alloc_frame();
 
    if (!_frame) {
       perror("Could not allocate _frame");
@@ -387,7 +387,8 @@ try
    if (_frame)
       _frame->pts = 0;
 
-   // read all packets 
+   AVPacket packet;
+   // read all packets
    while (1) {
       AVFilterBufferRef *picref;
       if ((ret = av_read_frame(_fmtCtx, &packet)) < 0)
@@ -440,7 +441,6 @@ end:
    if (_decCtx)
       avcodec_close(_decCtx);
    avformat_close_input(&_fmtCtx);
-//   av_freep(&_frame);
    av_freep(&_frame);
 
    // Close each codec.
