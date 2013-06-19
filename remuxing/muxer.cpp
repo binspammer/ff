@@ -50,7 +50,11 @@ void Muxer::init()
 
    // allocate the output media context
 //   avformat_alloc_output_context2(&_oc, NULL, NULL, _filename);
-   avformat_alloc_output_context2(&_oc, NULL, "dnxhd", _filename);
+//   avformat_alloc_output_context2(&_oc, NULL, "dnxhd", _filename);
+//   avformat_alloc_output_context2(&_oc, NULL, "mov", _filename);
+   _fmt = av_guess_format("mov", NULL, NULL);
+   _fmt->video_codec = AV_CODEC_ID_DNXHD;
+   avformat_alloc_output_context2(&_oc, _fmt, NULL, _filename);
    if (!_oc) {
       std::cout <<"Could not deduce output format from file extension: using MPEG" <<std::endl;
       avformat_alloc_output_context2(&_oc, NULL, "mpeg", _filename);
@@ -58,8 +62,9 @@ void Muxer::init()
    if (!_oc)
       throw std::runtime_error("Could not open the context");
    //     return 1;
-
-   _fmt = _oc->oformat;
+   
+//   _fmt = _oc->oformat;
+//   _oc->oformat = _fmt;
 
    // Add the audio and video streams using the default format codecs
    // and initialize the codecs.
