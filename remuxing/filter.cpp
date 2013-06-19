@@ -49,7 +49,7 @@ int Filter::openInputFile()
       av_log(NULL, AV_LOG_ERROR, "Cannot find stream information\n");
       return ret;
    }
-   /* select the video stream */
+   // select the video stream
    ret = av_find_best_stream(_fmtCtx, AVMEDIA_TYPE_VIDEO, -1, -1, &dec, 0);
    if (ret < 0) {
       av_log(NULL, AV_LOG_ERROR, "Cannot find a video stream in the input file\n");
@@ -57,7 +57,7 @@ int Filter::openInputFile()
    }
    _videoStreamIndex = ret;
    _decCtx = _fmtCtx->streams[_videoStreamIndex]->codec;
-   /* init the video decoder */
+   // init the video decoder
    if ((ret = avcodec_open2(_decCtx, dec, NULL)) < 0) {
       av_log(NULL, AV_LOG_ERROR, "Cannot open video decoder\n");
       return ret;
@@ -77,7 +77,7 @@ int Filter::initFilters()
    AVFilterInOut *inputs  = avfilter_inout_alloc();
 
    _filterGraph = avfilter_graph_alloc();
-   /* buffer video source: the decoded frames from the decoder will be inserted here. */
+   // buffer video source: the decoded frames from the decoder will be inserted here.
    snprintf(args, sizeof(args),
             "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
             _decCtx->width, _decCtx->height, _decCtx->pix_fmt,
@@ -89,7 +89,7 @@ int Filter::initFilters()
       av_log(NULL, AV_LOG_ERROR, "Cannot create buffer source\n");
       return ret;
    }
-   /* buffer video sink: to terminate the filter chain. */
+   // buffer video sink: to terminate the filter chain.
    buffersink_params = av_buffersink_params_alloc();
    buffersink_params->pixel_fmts = pix_fmts;
    ret = avfilter_graph_create_filter(&_buffersinkCtx, buffersink, "out", NULL, buffersink_params, _filterGraph);
@@ -98,7 +98,7 @@ int Filter::initFilters()
       av_log(NULL, AV_LOG_ERROR, "Cannot create buffer sink\n");
       return ret;
    }
-   /* Endpoints for the filter graph. */
+   // Endpoints for the filter graph.
    outputs->name       = av_strdup("in");
    outputs->filter_ctx = +_buffersrcCtx;
    outputs->pad_idx    = 0;
@@ -122,15 +122,14 @@ void Filter::displayPicref(AVFilterBufferRef *picref, AVRational time_base)
    int64_t delay;
    if (picref->pts != AV_NOPTS_VALUE) {
       if (_lastPts != AV_NOPTS_VALUE) {
-         /* sleep roughly the right amount of time;
-            * usleep is in microseconds, just like AV_TIME_BASE. */
+         // sleep roughly the right amount of time; usleep is in microseconds, just like AV_TIME_BASE.
          delay = av_rescale_q(picref->pts - _lastPts, time_base, AV_TIME_BASE_Q);
          if (delay > 0 && delay < 1000000)
             usleep(delay);
       }
       _lastPts = picref->pts;
    }
-   /* Trivial ASCII grayscale display. */
+   // Trivial ASCII grayscale display.
    p0 = picref->data[0];
    puts("\033c");
    for (y = 0; y < picref->video->h; y++) {
@@ -157,7 +156,7 @@ void Filter::filterig()
 {
    init();
 
-   /* read all packets */
+   // read all packets
    while (1) {
       AVFilterBufferRef *picref;
       if (av_read_frame(_fmtCtx, &_packet) < 0)
@@ -171,12 +170,12 @@ void Filter::filterig()
          }
          if (_gotFrame) {
             _frame->pts = av_frame_get_best_effort_timestamp(_frame);
-            /* push the decoded frame into the filtergraph */
+            // push the decoded frame into the filtergraph
             if (av_buffersrc_add_frame(+_buffersrcCtx, _frame, 0) < 0) {
                av_log(NULL, AV_LOG_ERROR, "Error while feeding the filtergraph\n");
                break;
             }
-            /* pull filtered pictures from the filtergraph */
+            // pull filtered pictures from the filtergraph
             while (1) {
                int ret = av_buffersink_get_buffer_ref(_buffersinkCtx, &picref, 0);
                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
