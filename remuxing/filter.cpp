@@ -69,12 +69,13 @@ int Filter::initFilters()
 {
    char args[512];
    int ret;
+   enum AVPixelFormat pix_fmts[] = { AV_PIX_FMT_GRAY8, AV_PIX_FMT_NONE };
+   AVBufferSinkParams *buffersink_params;
    AVFilter *buffersrc  = avfilter_get_by_name("buffer");
    AVFilter *buffersink = avfilter_get_by_name("ffbuffersink");
    AVFilterInOut *outputs = avfilter_inout_alloc();
    AVFilterInOut *inputs  = avfilter_inout_alloc();
-   enum AVPixelFormat pix_fmts[] = { AV_PIX_FMT_GRAY8, AV_PIX_FMT_NONE };
-   AVBufferSinkParams *buffersink_params;
+
    _filterGraph = avfilter_graph_alloc();
    /* buffer video source: the decoded frames from the decoder will be inserted here. */
    snprintf(args, sizeof(args),
@@ -82,8 +83,8 @@ int Filter::initFilters()
             _decCtx->width, _decCtx->height, _decCtx->pix_fmt,
             _decCtx->time_base.num, _decCtx->time_base.den,
             _decCtx->sample_aspect_ratio.num, _decCtx->sample_aspect_ratio.den);
-   ret = avfilter_graph_create_filter(&_buffersrcCtx, buffersrc, "in",
-                                      args, NULL, _filterGraph);
+
+   ret = avfilter_graph_create_filter(&_buffersrcCtx, buffersrc, "in", args, NULL, _filterGraph);
    if (ret < 0) {
       av_log(NULL, AV_LOG_ERROR, "Cannot create buffer source\n");
       return ret;
@@ -91,8 +92,7 @@ int Filter::initFilters()
    /* buffer video sink: to terminate the filter chain. */
    buffersink_params = av_buffersink_params_alloc();
    buffersink_params->pixel_fmts = pix_fmts;
-   ret = avfilter_graph_create_filter(&_buffersinkCtx, buffersink, "out",
-                                      NULL, buffersink_params, _filterGraph);
+   ret = avfilter_graph_create_filter(&_buffersinkCtx, buffersink, "out", NULL, buffersink_params, _filterGraph);
    av_free(buffersink_params);
    if (ret < 0) {
       av_log(NULL, AV_LOG_ERROR, "Cannot create buffer sink\n");
@@ -124,8 +124,7 @@ void Filter::displayPicref(AVFilterBufferRef *picref, AVRational time_base)
       if (_lastPts != AV_NOPTS_VALUE) {
          /* sleep roughly the right amount of time;
             * usleep is in microseconds, just like AV_TIME_BASE. */
-         delay = av_rescale_q(picref->pts - _lastPts,
-                              time_base, AV_TIME_BASE_Q);
+         delay = av_rescale_q(picref->pts - _lastPts, time_base, AV_TIME_BASE_Q);
          if (delay > 0 && delay < 1000000)
             usleep(delay);
       }
