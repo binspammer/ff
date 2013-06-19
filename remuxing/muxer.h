@@ -36,25 +36,25 @@ class Muxer
 {
 public:
    Muxer(const char *dst);
-   int mux();
+   void mux();
    
 private:
-   void initAll();
-   void closeAll();
-   AVStream *addStream(AVCodec **codec, enum AVCodecID codec_id);
-   void openVideo(AVCodec *codec, AVStream *st);
+   void init();
+   void close();
+   void openVideo();
+   void closeVideo();
+   void writeVideoFrame();
+   AVStream *addStream(enum AVCodecID codec_id);
    void fillYUVImage(AVPicture *pict, int frame_index, int width, int height);
-   void writeVideoFrame(AVStream *st);
-   void closeVideo(AVStream *st);
    
-   int STREAM_DURATION = 200.0; // 5 seconds stream duration
-   int STREAM_FRAME_RATE = 25;  // 25 images/s
-   int STREAM_NB_FRAMES;        // STREAM_DURATION * STREAM_FRAME_RATE
-   enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV422P;
+   const int STREAM_DURATION = 5;    // 5 seconds stream duration
+   const int STREAM_FRAME_RATE = 25; // 25 images/s
+   const int STREAM_NB_FRAMES;       // STREAM_DURATION * STREAM_FRAME_RATE
+   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV422P;
 
    int _sws_flags = SWS_BICUBIC;
-   float _t, _tincr, _incr2;
-   int16_t *_samples;
+//   float _t, _tincr, _incr2;
+//   int16_t *_samples;
    AVFrame *_frame;
    AVOutputFormat *_fmt;
    AVFormatContext *_oc;
