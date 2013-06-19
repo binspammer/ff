@@ -1,5 +1,7 @@
+#include "filter.h"
 #include "demuxer.h"
 #include "muxer.h"
+
 #include <iostream>
 
 using namespace std;
@@ -7,11 +9,13 @@ using namespace std;
 int main(int argc, char **argv)
 {
    
-   if (argc < 3) {
+   if (argc != 3) {
       fprintf(stderr, "usage: %s input_file video_output_file \n", argv[0]);
       exit(1);
    }
    
+   Filter filter(argv[1]);
+   filter.filterig();
 //   Demuxer demuxer(argv[1]);
 //   demuxer.demux();
    Muxer muxer(argv[2]);

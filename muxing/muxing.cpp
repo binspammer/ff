@@ -169,7 +169,7 @@ void write_video_frame(AVFormatContext *oc, AVStream *st)
    int ret;
    AVCodecContext *c = st->codec;
    
-   if (frame_count < STREAM_NB_FRAMES) 
+   if (frame_count < STREAM_NB_FRAMES) {
       if (c->pix_fmt != AV_PIX_FMT_YUV422P) {
          // as we only generate a YUV420P picture, we must 
          // convert it to the codec pixel format if needed 
@@ -184,7 +184,8 @@ void write_video_frame(AVFormatContext *oc, AVStream *st)
       } 
       else 
          fill_yuv_image(&dst_picture, frame_count, c->width, c->height);
-   
+   }
+
    if (oc->oformat->flags & AVFMT_RAWPICTURE) {
       // Raw video case - directly store the picture in the packet 
       AVPacket pkt;

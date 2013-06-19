@@ -8,9 +8,11 @@ include(../ff.prf)
 SOURCES += \
     remuxing.cpp \
     demuxer.cpp \
-    muxer.cpp
+    muxer.cpp \
+    filter.cpp
 
 HEADERS += \
     demuxer.h \
-    muxer.h
+    muxer.h \
+    filter.h
 

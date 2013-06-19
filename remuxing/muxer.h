@@ -36,8 +36,9 @@ class Muxer
 {
 public:
    Muxer(const char *dst);
+   virtual ~Muxer();
    void mux();
-   
+
 private:
    void init();
    void close();
@@ -46,26 +47,24 @@ private:
    void writeVideoFrame();
    AVStream *addStream(enum AVCodecID codec_id);
    void fillYUVImage(AVPicture *pict, int frame_index, int width, int height);
-   
+
    const int STREAM_DURATION = 5;    // 5 seconds stream duration
    const int STREAM_FRAME_RATE = 25; // 25 images/s
    const int STREAM_NB_FRAMES;       // STREAM_DURATION * STREAM_FRAME_RATE
    const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV422P;
+   const int _sws_flags = SWS_BICUBIC;
 
-   int _sws_flags = SWS_BICUBIC;
-//   float _t, _tincr, _incr2;
-//   int16_t *_samples;
-   AVFrame *_frame;
-   AVOutputFormat *_fmt;
-   AVFormatContext *_oc;
-   AVPicture _src_picture, _dst_picture;
-   AVStream *_video_st;
-   AVCodec *_video_codec;
-   double _video_pts;
+   //   float _t, _tincr, _incr2;
+   //   int16_t *_samples;
    const char *_filename;
-   int _frame_count;
-   int _ret;
-   
+   AVOutputFormat *_fmt = nullptr;
+   AVFormatContext *_oc = nullptr;
+   AVCodec *_videoCodec = nullptr;
+   AVFrame *_frame = nullptr;
+   AVPicture _srcPicture, _dstPicture;
+   AVStream *_videoSt = nullptr;
+   double _videoPts = 0;
+   int _frameCount = 0;
 };
 
 #endif // MUXER_HPP

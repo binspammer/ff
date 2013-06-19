@@ -3,36 +3,38 @@
 using namespace std;
 
 Muxer::Muxer(const char *dst)
-: _filename(dst)
-, _frame_count(0)
-, STREAM_NB_FRAMES(STREAM_DURATION * STREAM_FRAME_RATE)
+   : STREAM_NB_FRAMES(STREAM_DURATION * STREAM_FRAME_RATE)
+   , _filename(dst)
 {
+}
+
+Muxer::~Muxer()
+{
+   close();
 }
 
 void Muxer::mux()
 try
 {
-  init();
+   init();
 
    for (;;)
    {
       // Compute current video time.
-      if (_video_st)
-         _video_pts = (double)_video_st->pts.val * _video_st->time_base.num / _video_st->time_base.den;
+      if (_videoSt)
+         _videoPts = (double)_videoSt->pts.val * _videoSt->time_base.num / _videoSt->time_base.den;
       else
-         _video_pts = 0.0;
+         _videoPts = 0.0;
 
-      if (!_video_st || _video_pts >= STREAM_DURATION)
+      if (!_videoSt || _videoPts >= STREAM_DURATION)
          break;
 
       // write interleaved audio and video frames
-      if (_video_st ) {
+      if (_videoSt ) {
          writeVideoFrame();
-         _frame->pts += av_rescale_q(1, _video_st->codec->time_base, _video_st->time_base);
+         _frame->pts += av_rescale_q(1, _videoSt->codec->time_base, _videoSt->time_base);
       }
    }
-
-   close();
 }
 catch(exception &e)
 {
@@ -42,172 +44,167 @@ catch(exception &e)
 void Muxer::init()
 {
 
-  // Initialize libavcodec, and register all codecs and formats.
-  av_register_all();
+   // Initialize libavcodec, and register all codecs and formats.
+   av_register_all();
 
-  // allocate the output media context
-  avformat_alloc_output_context2(&_oc, NULL, NULL, _filename);
-  if (!_oc) {
-     std::cout <<"Could not deduce output format from file extension: using MPEG" <<std::endl;
-     avformat_alloc_output_context2(&_oc, NULL, "mpeg", _filename);
-  }
-  if (!_oc)
-    throw std::runtime_error("Could not open the context");
-//     return 1;
+   // allocate the output media context
+//   avformat_alloc_output_context2(&_oc, NULL, NULL, _filename);
+   avformat_alloc_output_context2(&_oc, NULL, "dnxhd", _filename);
+   if (!_oc) {
+      std::cout <<"Could not deduce output format from file extension: using MPEG" <<std::endl;
+      avformat_alloc_output_context2(&_oc, NULL, "mpeg", _filename);
+   }
+   if (!_oc)
+      throw std::runtime_error("Could not open the context");
+   //     return 1;
 
-  _fmt = _oc->oformat;
+   _fmt = _oc->oformat;
 
-  // Add the audio and video streams using the default format codecs
-  // and initialize the codecs.
-  _video_st = NULL;
-  if (_fmt->video_codec != AV_CODEC_ID_NONE)
-     _video_st = addStream(_fmt->video_codec);
+   // Add the audio and video streams using the default format codecs
+   // and initialize the codecs.
+   _videoSt = NULL;
+   if (_fmt->video_codec != AV_CODEC_ID_NONE)
+      _videoSt = addStream(_fmt->video_codec);
 
 
-  // Now that all the parameters are set, we can open the
-  // video codecs and allocate the necessary encode buffers.
-  if (_video_st)
-     openVideo();
+   // Now that all the parameters are set, we can open the
+   // video codecs and allocate the necessary encode buffers.
+   if (_videoSt)
+      openVideo();
 
-  av_dump_format(_oc, 0, _filename, 1);
+   av_dump_format(_oc, 0, _filename, 1);
 
-  // open the output file, if needed
-  if (!(_fmt->flags & AVFMT_NOFILE)) {
-     _ret = avio_open(&_oc->pb, _filename, AVIO_FLAG_WRITE);
-     if (_ret < 0)
-        throw std::runtime_error("Could not open file");
-  }
+   // open the output file, if needed
+   if ( !(_fmt->flags & AVFMT_NOFILE)
+      && avio_open(&_oc->pb, _filename, AVIO_FLAG_WRITE) < 0 )
+         throw std::runtime_error("Could not open file");
 
-  // Write the stream header, if any.
-  if (avformat_write_header(_oc, NULL) < 0)
-     throw std::runtime_error("Error occurred when opening output file");
+   // Write the stream header, if any.
+   if (avformat_write_header(_oc, NULL) < 0)
+      throw std::runtime_error("Error occurred when opening output file");
 
-  if (_frame)
-     _frame->pts = 0;
+   if (_frame)
+      _frame->pts = 0;
 
 }
 
 void Muxer::close()
 {
-  /* Write the trailer, if any. The trailer must be written before you
+   /* Write the trailer, if any. The trailer must be written before you
     * close the CodecContexts open when you wrote the header; otherwise
     * av_write_trailer() may try to use memory that was freed on av_codec_close(). */
-  av_write_trailer(_oc);
+   av_write_trailer(_oc);
 
-  // Close each codec.
-  if (_video_st)
-     closeVideo();
+   // Close each codec.
+   if (_videoSt)
+      closeVideo();
 
-  if (!(_fmt->flags & AVFMT_NOFILE))
-     // Close the output file.
-     avio_close(_oc->pb);
+   if (!(_fmt->flags & AVFMT_NOFILE))
+      // Close the output file.
+      avio_close(_oc->pb);
 
-  // free the stream
-  avformat_free_context(_oc);
+   // free the stream
+   avformat_free_context(_oc);
 }
 
 // video output 
 void Muxer::openVideo()
 {
-   AVCodecContext *c = _video_st->codec;
+   AVCodecContext *c = _videoSt->codec;
    
    av_dump_format(_oc, 0, NULL, 1);
    
-   // open the codec 
-   if ( avcodec_open2(c, _video_codec, NULL)  < 0 )
+   // open the codec
+   if ( avcodec_open2(c, _videoCodec, NULL)  < 0 )
       throw std::runtime_error("Could not open video codec");
    
-   // allocate and init a re-usable frame 
+   // allocate and init a re-usable frame
    if ( !avcodec_alloc_frame() )
       throw std::runtime_error("Could not allocate video frame");
    
-   // Allocate the encoded raw picture. 
-   if( avpicture_alloc(&_dst_picture, c->pix_fmt, c->width, c->height) <0 )
+   // Allocate the encoded raw picture.
+   if( avpicture_alloc(&_dstPicture, c->pix_fmt, c->width, c->height) <0 )
       throw std::runtime_error("Could not allocate picture");
    
    // If the output format is not YUV420P, then a temporary YUV420P picture
-   // is needed too. It is then converted to the required * output format. 
+   // is needed too. It is then converted to the required * output format.
    if (c->pix_fmt != AV_PIX_FMT_YUV422P
-      && avpicture_alloc(&_src_picture, AV_PIX_FMT_YUV422P, c->width, c->height) <0 )
-         throw std::runtime_error("Could not allocate temporary picture");
+       && avpicture_alloc(&_srcPicture, AV_PIX_FMT_YUV422P, c->width, c->height) <0 )
+      throw std::runtime_error("Could not allocate temporary picture");
    
-   // copy data and linesize picture pointers to frame 
-//   * reinterpret_cast<AVPicture*>(frame) = dst_picture;
-   _frame = reinterpret_cast<AVFrame*>(&_dst_picture);
+   // copy data and linesize picture pointers to frame
+   //   * reinterpret_cast<AVPicture*>(frame) = dst_picture;
+   _frame = reinterpret_cast<AVFrame*>(&_dstPicture);
 }
 
 void Muxer::closeVideo()
 {
-   avcodec_close(_video_st->codec);
-   av_free(_src_picture.data[0]);
-   av_free(_dst_picture.data[0]);
-   av_free(_frame);
+   avcodec_close(_videoSt->codec);
+//   av_freep(&_src_picture.data[0]);
+//   av_freep(&_dst_picture.data[0]);
+//   av_freep(&_frame);
 }
 
 // media file output
 void Muxer::writeVideoFrame()
 {
    int ret;
-   AVCodecContext *c = _video_st->codec;
+   AVCodecContext *c = _videoSt->codec;
    
-   if (_frame_count < STREAM_NB_FRAMES)
+   if (_frameCount < STREAM_NB_FRAMES) {
       if (c->pix_fmt != AV_PIX_FMT_YUV422P) {
          // as we only generate a YUV422P picture, we must
-         // convert it to the codec pixel format if needed 
-            struct SwsContext *sws_ctx = sws_getContext(c->width, c->height, AV_PIX_FMT_YUV422P,
-                                     c->width, c->height, c->pix_fmt, _sws_flags, NULL, NULL, NULL);
-            if (!sws_ctx) 
-               throw std::runtime_error("Could not initialize the conversion context\n");
-            
-         fillYUVImage(&_src_picture, _frame_count, c->width, c->height);
-         sws_scale(sws_ctx, (const uint8_t * const *)_src_picture.data,
-                   _src_picture.linesize, 0, c->height, _dst_picture.data, _dst_picture.linesize);
-      } 
-      else 
-         fillYUVImage(&_dst_picture, _frame_count, c->width, c->height);
-   
+         // convert it to the codec pixel format if needed
+         struct SwsContext *sws_ctx = sws_getContext(c->width, c->height, AV_PIX_FMT_YUV422P,
+                                                     c->width, c->height, c->pix_fmt, _sws_flags, NULL, NULL, NULL);
+         if (!sws_ctx)
+            throw std::runtime_error("Could not initialize the conversion context\n");
+
+         fillYUVImage(&_srcPicture, _frameCount, c->width, c->height);
+         sws_scale(sws_ctx, (const uint8_t * const *)_srcPicture.data,
+                   _srcPicture.linesize, 0, c->height, _dstPicture.data, _dstPicture.linesize);
+      }
+      else
+         fillYUVImage(&_dstPicture, _frameCount, c->width, c->height);
+   }
+
+   AVPacket pkt;
+   av_init_packet(&pkt);
    if (_oc->oformat->flags & AVFMT_RAWPICTURE) {
-      // Raw video case - directly store the picture in the packet 
-      AVPacket pkt;
-      av_init_packet(&pkt);
-      
+      // Raw video case - directly store the picture in the packet
       pkt.flags        |= AV_PKT_FLAG_KEY;
-      pkt.stream_index  = _video_st->index;
-      pkt.data          = _dst_picture.data[0];
+      pkt.stream_index  = _videoSt->index;
+      pkt.data          = _dstPicture.data[0];
       pkt.size          = sizeof(AVPicture);
       
       ret = av_interleaved_write_frame(_oc, &pkt);
-   } 
+   }
    else {
-      // encode the image 
-      AVPacket pkt;
-      int got_output;
-      
-      av_init_packet(&pkt);
+      // encode the image
       pkt.data = NULL;    // packet data will be allocated by the encoder
       pkt.size = 0;
       
-      ret = avcodec_encode_video2(c, &pkt, _frame, &got_output);
-      if (ret < 0) 
+      int got_output;
+      if (avcodec_encode_video2(c, &pkt, _frame, &got_output) < 0)
          throw std::runtime_error("Error encoding video frame");
       
-      // If size is zero, it means the image was buffered. 
+      // If size is zero, it means the image was buffered.
       if (got_output) {
          if (c->coded_frame->key_frame)
             pkt.flags |= AV_PKT_FLAG_KEY;
-         pkt.stream_index = _video_st->index;
+         pkt.stream_index = _videoSt->index;
          
-         // Write the compressed frame to the media file. 
+         // Write the compressed frame to the media file.
          ret = av_interleaved_write_frame(_oc, &pkt);
-      } 
-      else 
+      }
+      else
          ret = 0;
    }
    
-   if (ret != 0) 
+   if (ret != 0)
       throw std::runtime_error("Error while writing video frame");
    
-   _frame_count++;
+   _frameCount++;
 }
 
 // Add an output stream.
@@ -217,25 +214,25 @@ AVStream* Muxer::addStream(enum AVCodecID codec_id)
    AVStream *st;
 
    // find the encoder
-   _video_codec = avcodec_find_encoder(codec_id);
-   if (!(_video_codec))
+   _videoCodec = avcodec_find_encoder(codec_id);
+   if (!(_videoCodec))
       throw std::runtime_error("Could not find encoder");
 
-   st = avformat_new_stream(_oc, _video_codec);
+   st = avformat_new_stream(_oc, _videoCodec);
    if (!st)
       throw std::runtime_error("Could not allocate stream");
 
    st->id = _oc->nb_streams-1;
    c = st->codec;
 
-   switch ((_video_codec)->type) {
+   switch ((_videoCodec)->type) {
       case AVMEDIA_TYPE_AUDIO:
          st->id = 1;
          c->sample_fmt  = AV_SAMPLE_FMT_S16;
          c->bit_rate    = 64000;
          c->sample_rate = 44100;
          c->channels    = 2;
-         break;
+      break;
 
       case AVMEDIA_TYPE_VIDEO:
          c->codec_id = codec_id;
@@ -262,10 +259,10 @@ AVStream* Muxer::addStream(enum AVCodecID codec_id)
              * the motion of the chroma plane does not match the luma plane. */
             c->mb_decision = 2;
          }
-         break;
+      break;
 
       default:
-         break;
+      break;
    }
 
    // Some formats want stream headers to be separate.

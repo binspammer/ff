@@ -4,7 +4,7 @@ FFMPEG_HOME=/opt/ffmpeg
 LIBAV_HOME=/usr/local
 DEV=$$FFMPEG_HOME
 
-unix:!macx: LIBS += -L$$DEV/lib/ -lavcodec -lavfilter -lavformat -lavutil -lswscale -lswresample
+unix:!macx: LIBS += -L$$DEV/lib/ -lavcodec -lavfilter -lavformat -lavutil -lswscale -lswresample -lpostproc
 
 INCLUDEPATH += $$DEV/include
 DEPENDPATH += $$DEV/include
