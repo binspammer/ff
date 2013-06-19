@@ -2,6 +2,7 @@
 
 Muxer::Muxer(const char *dst)
 : _filename(dst)
+, STREAM_NB_FRAMES(STREAM_DURATION * STREAM_FRAME_RATE)
 {
 }
 
@@ -10,7 +11,7 @@ using namespace std;
 
 
 // Add an output stream. 
-AVStream* Muxer::addStream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_id)
+AVStream* Muxer::addStream(AVCodec **codec, enum AVCodecID codec_id)
 {
    AVCodecContext *c;
    AVStream *st;
@@ -20,11 +21,11 @@ AVStream* Muxer::addStream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID 
    if (!(*codec)) 
       throw std::runtime_error("Could not find encoder");
    
-   st = avformat_new_stream(oc, *codec);
+   st = avformat_new_stream(_oc, *codec);
    if (!st) 
       throw std::runtime_error("Could not allocate stream");
    
-   st->id = oc->nb_streams-1;
+   st->id = _oc->nb_streams-1;
    c = st->codec;
    
    switch ((*codec)->type) {
@@ -68,18 +69,18 @@ AVStream* Muxer::addStream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID 
    }
    
    // Some formats want stream headers to be separate. 
-   if (oc->oformat->flags & AVFMT_GLOBALHEADER)
+   if (_oc->oformat->flags & AVFMT_GLOBALHEADER)
       c->flags |= CODEC_FLAG_GLOBAL_HEADER;
    
    return st;
 }
 
 // video output 
-void Muxer::openVideo(AVFormatContext *oc, AVCodec *codec, AVStream *st)
+void Muxer::openVideo(AVCodec *codec, AVStream *st)
 {
    AVCodecContext *c = st->codec;
    
-   av_dump_format(oc, 0, NULL, 1);
+   av_dump_format(_oc, 0, NULL, 1);
    
    // open the codec 
    if ( avcodec_open2(c, codec, NULL)  < 0 )
@@ -125,7 +126,7 @@ void Muxer::fillYUVImage(AVPicture *pict, int frame_index, int width, int height
    }
 }
 
-void Muxer::writeVideoFrame(AVFormatContext *oc, AVStream *st)
+void Muxer::writeVideoFrame(AVStream *st)
 {
    int ret;
    AVCodecContext *c = st->codec;
@@ -146,7 +147,7 @@ void Muxer::writeVideoFrame(AVFormatContext *oc, AVStream *st)
       else 
          fillYUVImage(&_dst_picture, _frame_count, c->width, c->height);
    
-   if (oc->oformat->flags & AVFMT_RAWPICTURE) {
+   if (_oc->oformat->flags & AVFMT_RAWPICTURE) {
       // Raw video case - directly store the picture in the packet 
       AVPacket pkt;
       av_init_packet(&pkt);
@@ -156,7 +157,7 @@ void Muxer::writeVideoFrame(AVFormatContext *oc, AVStream *st)
       pkt.data          = _dst_picture.data[0];
       pkt.size          = sizeof(AVPicture);
       
-      ret = av_interleaved_write_frame(oc, &pkt);
+      ret = av_interleaved_write_frame(_oc, &pkt);
    } 
    else {
       // encode the image 
@@ -178,7 +179,7 @@ void Muxer::writeVideoFrame(AVFormatContext *oc, AVStream *st)
          pkt.stream_index = st->index;
          
          // Write the compressed frame to the media file. 
-         ret = av_interleaved_write_frame(oc, &pkt);
+         ret = av_interleaved_write_frame(_oc, &pkt);
       } 
       else 
          ret = 0;
@@ -190,12 +191,80 @@ void Muxer::writeVideoFrame(AVFormatContext *oc, AVStream *st)
    _frame_count++;
 }
 
-void Muxer::closeVideo(AVFormatContext *oc, AVStream *st)
+void Muxer::closeVideo(AVStream *st)
 {
    avcodec_close(st->codec);
    av_free(_src_picture.data[0]);
    av_free(_dst_picture.data[0]);
    av_free(_frame);
+}
+
+void Muxer::initAll()
+{
+
+  // Initialize libavcodec, and register all codecs and formats.
+  av_register_all();
+
+  // allocate the output media context
+  avformat_alloc_output_context2(&_oc, NULL, NULL, _filename);
+  if (!_oc) {
+     std::cout <<"Could not deduce output format from file extension: using MPEG" <<std::endl;
+     avformat_alloc_output_context2(&_oc, NULL, "mpeg", _filename);
+  }
+  if (!_oc)
+    std::cout <<"Could not open the context" <<std::endl;
+//     return 1;
+
+  _fmt = _oc->oformat;
+
+  // Add the audio and video streams using the default format codecs
+  // and initialize the codecs.
+  _video_st = NULL;
+
+  if (_fmt->video_codec != AV_CODEC_ID_NONE)
+     _video_st = addStream(&_video_codec, _fmt->video_codec);
+
+
+  // Now that all the parameters are set, we can open the
+  // video codecs and allocate the necessary encode buffers.
+  if (_video_st)
+     openVideo(_video_codec, _video_st);
+
+  av_dump_format(_oc, 0, _filename, 1);
+
+  // open the output file, if needed
+  if (!(_fmt->flags & AVFMT_NOFILE)) {
+     _ret = avio_open(&_oc->pb, _filename, AVIO_FLAG_WRITE);
+     if (_ret < 0)
+        throw std::runtime_error("Could not open file");
+  }
+
+  // Write the stream header, if any.
+  if (avformat_write_header(_oc, NULL) < 0)
+     throw std::runtime_error("Error occurred when opening output file");
+
+  if (_frame)
+     _frame->pts = 0;
+
+}
+
+void Muxer::closeAll()
+{
+  /* Write the trailer, if any. The trailer must be written before you
+    * close the CodecContexts open when you wrote the header; otherwise
+    * av_write_trailer() may try to use memory that was freed on av_codec_close(). */
+  av_write_trailer(_oc);
+
+  // Close each codec.
+  if (_video_st)
+     closeVideo(_video_st);
+
+  if (!(_fmt->flags & AVFMT_NOFILE))
+     // Close the output file.
+     avio_close(_oc->pb);
+
+  // free the stream
+  avformat_free_context(_oc);
 }
 
 //
@@ -204,49 +273,8 @@ void Muxer::closeVideo(AVFormatContext *oc, AVStream *st)
 int Muxer::mux()
 try
 { 
-   // Initialize libavcodec, and register all codecs and formats. 
-   av_register_all();
-      
-   // allocate the output media context 
-   avformat_alloc_output_context2(&_oc, NULL, NULL, _filename);
-   if (!_oc) {
-      std::cout <<"Could not deduce output format from file extension: using MPEG" <<std::endl;
-      avformat_alloc_output_context2(&_oc, NULL, "mpeg", _filename);
-   }
-   if (!_oc)
-      return 1;
-   
-   _fmt = _oc->oformat;
-   
-   // Add the audio and video streams using the default format codecs
-   // and initialize the codecs. 
-   _video_st = NULL;
-   
-   if (_fmt->video_codec != AV_CODEC_ID_NONE)
-      _video_st = addStream(_oc, &_video_codec, _fmt->video_codec);
-   
-   
-   // Now that all the parameters are set, we can open the audio and
-   // video codecs and allocate the necessary encode buffers.
-   if (_video_st)
-      openVideo(_oc, _video_codec, _video_st);
-   
-   av_dump_format(_oc, 0, _filename, 1);
-   
-   // open the output file, if needed 
-   if (!(_fmt->flags & AVFMT_NOFILE)) {
-      _ret = avio_open(&_oc->pb, _filename, AVIO_FLAG_WRITE);
-      if (_ret < 0)
-         throw std::runtime_error("Could not open file");
-   }
-   
-   // Write the stream header, if any. 
-   if (avformat_write_header(_oc, NULL) < 0)
-      throw std::runtime_error("Error occurred when opening output file");
-   
-   if (_frame)
-      _frame->pts = 0;
-   
+  initAll();
+
    for (;;) 
    {
       // Compute current audio and video time. 
@@ -260,26 +288,10 @@ try
       
       // write interleaved audio and video frames 
       if (_video_st ) {
-         writeVideoFrame(_oc, _video_st);
+         writeVideoFrame(_video_st);
          _frame->pts += av_rescale_q(1, _video_st->codec->time_base, _video_st->time_base);
       }
    }
-   
-   /* Write the trailer, if any. The trailer must be written before you
-     * close the CodecContexts open when you wrote the header; otherwise
-     * av_write_trailer() may try to use memory that was freed on av_codec_close(). */
-   av_write_trailer(_oc);
-   
-   // Close each codec. 
-   if (_video_st)
-      closeVideo(_oc, _video_st);
-   
-   if (!(_fmt->flags & AVFMT_NOFILE))
-      // Close the output file. 
-      avio_close(_oc->pb);
-   
-   // free the stream 
-   avformat_free_context(_oc);
    
    return 0;
 }

@@ -32,12 +32,6 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
-// 5 seconds stream duration 
-#define STREAM_DURATION   200.0
-#define STREAM_FRAME_RATE 25 // 25 images/s 
-#define STREAM_NB_FRAMES  ((int)(STREAM_DURATION * STREAM_FRAME_RATE))
-#define STREAM_PIX_FMT    AV_PIX_FMT_YUV422P // default pix_fmt 
-
 class Muxer
 {
 public:
@@ -45,13 +39,19 @@ public:
    int mux();
    
 private:
-   AVStream *addStream(AVFormatContext *_oc, AVCodec **codec, enum AVCodecID codec_id);
-   void openVideo(AVFormatContext *_oc, AVCodec *codec, AVStream *st);
+   void initAll();
+   void closeAll();
+   AVStream *addStream(AVCodec **codec, enum AVCodecID codec_id);
+   void openVideo(AVCodec *codec, AVStream *st);
    void fillYUVImage(AVPicture *pict, int frame_index, int width, int height);
-   void writeVideoFrame(AVFormatContext *_oc, AVStream *st);
-   void closeVideo(AVFormatContext *_oc, AVStream *st);
+   void writeVideoFrame(AVStream *st);
+   void closeVideo(AVStream *st);
    
-   
+   int STREAM_DURATION = 200.0; // 5 seconds stream duration
+   int STREAM_FRAME_RATE = 25;  // 25 images/s
+   int STREAM_NB_FRAMES;        // STREAM_DURATION * STREAM_FRAME_RATE
+   enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV422P;
+
    int _sws_flags = SWS_BICUBIC;
    float _t, _tincr, _incr2;
    int16_t *_samples;
