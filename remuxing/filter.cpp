@@ -20,18 +20,18 @@ Filter::~Filter()
 
 void Filter::init()
 {
-   //   frame = av_frame_alloc();
    _frame = avcodec_alloc_frame();
    _filtFrame = avcodec_alloc_frame();
-   if (!_frame || !_filtFrame) {
-      perror("Could not allocate frame");
-      exit(1);
-   }
+   if (!_frame || !_filtFrame)
+      throw std::runtime_error("Could not allocate frame");
+
    avcodec_register_all();
    av_register_all();
    avfilter_register_all();
+
    if (openInputFile() < 0)
       throw std::runtime_error("Could not open the input file");
+
    if (initFilters() < 0)
       throw std::runtime_error("Could not init the filters");
 }
@@ -150,7 +150,7 @@ void Filter::close()
    av_freep(&_frame);
 }
 
-void Filter::filterig()
+void Filter::decode()
 {
    init();
 
@@ -174,7 +174,7 @@ void Filter::filterig()
                break;
             }
             // pull filtered pictures from the filtergraph
-            while (1) {
+            for( ;; ) {
                int ret = av_buffersink_get_buffer_ref(_buffersinkCtx, &picref, 0);
                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                   break;
@@ -183,7 +183,7 @@ void Filter::filterig()
                if (picref) {
 //                  _images.push_back( std::make_shared<uint8_t*>(*picref->data) );
                   _images.push_back( std::make_shared<AVFilterBufferRef*>(picref) );
-                  displayPicref(picref, _buffersinkCtx->inputs[0]->time_base);
+//                  displayPicref(picref, _buffersinkCtx->inputs[0]->time_base);
 //                  avfilter_unref_bufferp(&picref);
                }
             }

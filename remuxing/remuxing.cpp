@@ -6,7 +6,9 @@
 
 using namespace std;
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
+try
 {
    
    if (argc != 3) {
@@ -14,12 +16,18 @@ int main(int argc, char **argv)
       exit(1);
    }
    
-   Filter filter(argv[1]);
-   filter.filterig();
 //   Demuxer demuxer(argv[1]);
 //   demuxer.demux();
-   Muxer muxer(argv[2]);
+
+   Filter filter(argv[1]);
+   filter.decode();
+   std::cout <<"filter.decode: " <<filter.getImages().size() <<" frames in source" <<std::endl;
+
+   Muxer muxer(argv[2], filter.getImages());
    muxer.mux();
    return 0;
 }
-
+catch(std::exception &e)
+{
+   std::cout <<e.what()<<std::endl;
+}

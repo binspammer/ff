@@ -13,6 +13,7 @@
 #include <cstring>
 #include <cmath>
 #include <memory>
+#include <vector>
 #include <iostream>
 #include <iomanip>
 #include <exception>
@@ -34,10 +35,13 @@ extern "C" {
 
 class Muxer
 {
+   typedef std::vector<std::shared_ptr<AVFilterBufferRef*>> Images;
+
 public:
-   Muxer(const char *dst);
+   Muxer(const char *dst, Images& images);
    virtual ~Muxer();
    void mux();
+//   void setImages(Images& images) { _images = images; }
 
 private:
    void init();
@@ -65,6 +69,7 @@ private:
    AVStream *_videoSt = nullptr;
    double _videoPts = 0;
    int _frameCount = 0;
+   Images &_images;
 };
 
 #endif // MUXER_HPP

@@ -31,10 +31,11 @@ extern "C" {
 class Filter
 {
    typedef std::vector<std::shared_ptr<AVFilterBufferRef*>> Images;
+
 public:
    Filter(const char* dst);
    virtual ~Filter();
-   void filterig();
+   void decode();
    Images& getImages() { return _images; }
 
 private:
@@ -46,6 +47,9 @@ private:
 
    const char *_filename;
    const char *_filterDescr = "scale=78:24,yadif"; //,interlace
+//   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV422P;
+   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_GRAY8;
+
    AVFormatContext *_fmtCtx = nullptr;
    AVCodecContext *_decCtx = nullptr;
    AVFilterContext *_buffersinkCtx = nullptr;

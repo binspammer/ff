@@ -2,9 +2,10 @@
 
 using namespace std;
 
-Muxer::Muxer(const char *dst)
+Muxer::Muxer(const char *dst, Images& images)
    : STREAM_NB_FRAMES(STREAM_DURATION * STREAM_FRAME_RATE)
    , _filename(dst)
+   , _images(images)
 {
 }
 
