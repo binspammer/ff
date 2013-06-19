@@ -25,12 +25,17 @@ extern "C" {
 #include <unistd.h>
 }
 
+#include <memory>
+#include <vector>
+
 class Filter
 {
+   typedef std::vector<std::shared_ptr<AVFilterBufferRef*>> Images;
 public:
    Filter(const char* dst);
    virtual ~Filter();
    void filterig();
+   Images& getImages() { return _images; }
 
 private:
    void init();
@@ -53,6 +58,8 @@ private:
    AVFrame *_frame = nullptr;
    AVFrame *_filtFrame = nullptr;
 
+   Images _images;
+//   std::vector<std::shared_ptr<uint8_t*>> _images;
 };
 
 

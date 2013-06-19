@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <cstring>
 #include <cmath>
-#include <memory>
 #include <iostream>
 #include <iomanip>
 #include <exception>
@@ -151,7 +150,6 @@ void Filter::close()
    av_freep(&_frame);
 }
 
-//int main(int argc, char **argv)
 void Filter::filterig()
 {
    init();
@@ -183,13 +181,14 @@ void Filter::filterig()
                if (ret < 0)
                   return;
                if (picref) {
+//                  _images.push_back( std::make_shared<uint8_t*>(*picref->data) );
+                  _images.push_back( std::make_shared<AVFilterBufferRef*>(picref) );
                   displayPicref(picref, _buffersinkCtx->inputs[0]->time_base);
-                  avfilter_unref_bufferp(&picref);
+//                  avfilter_unref_bufferp(&picref);
                }
             }
          }
       }
       av_free_packet(&_packet);
    }
-   close();
 }
