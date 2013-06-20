@@ -142,7 +142,6 @@ void Muxer::closeVideo()
 // media file output
 void Muxer::writeVideoFrame()
 {
-   int ret;
    AVCodecContext *c = _videoSt->codec;
    
    if (_frameCount < STREAM_NB_FRAMES) {
