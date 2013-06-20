@@ -133,37 +133,35 @@ void Filter::decode()
    init();
 
    // read all packets
-   for( ; av_read_frame(_fmtCtx, &_packet) >= 0; ) {
+   for(; av_read_frame(_fmtCtx, &_packet) >= 0; av_free_packet(&_packet))
+   {
       if (_packet.stream_index == _videoStreamIndex) {
          avcodec_get_frame_defaults(_frame);
          int _gotFrame(0);
-         if (avcodec_decode_video2(_decCtx, _frame, &_gotFrame, &_packet) < 0) {
-            av_log(NULL, AV_LOG_ERROR, "Error decoding video\n");
-            break;
-         }
+         if (avcodec_decode_video2(_decCtx, _frame, &_gotFrame, &_packet) < 0)
+            throw std::runtime_error("Error decoding video");
          if (_gotFrame) {
             _frame->pts = av_frame_get_best_effort_timestamp(_frame);
             // push the decoded frame into the filtergraph
-            if (av_buffersrc_add_frame(_buffersrcCtx, _frame, 0) < 0) {
-               av_log(NULL, AV_LOG_ERROR, "Error while feeding the filtergraph\n");
-               break;
-            }
+            if (av_buffersrc_add_frame(_buffersrcCtx, _frame, 0) < 0)
+               throw std::runtime_error("Error while feeding the filtergraph");
             // pull filtered pictures from the filtergraph
-            for( ;; ) {
+            for( ;; )
+            {
                AVFilterBufferRef *picref;
                int ret = av_buffersink_get_buffer_ref(_buffersinkCtx, &picref, 0);
                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                   break;
                if (ret < 0)
-                  return;
+                  throw std::runtime_error("Could not pull filtered pictures from the filtergraph");
                if (picref) {
                   _images.push_back( std::make_shared<AVFilterBufferRef>(*picref) );
-                  displayPicref(picref, _buffersinkCtx->inputs[0]->time_base);
-                  //                  avfilter_unref_bufferp(&picref);
+//                  displayPicref(picref, _buffersinkCtx->inputs[0]->time_base);
+//                  avfilter_unref_bufferp(&picref);
                }
             }
          }
       }
-      av_free_packet(&_packet);
+//      av_free_packet(&_packet);
    }
 }

@@ -42,16 +42,15 @@ private:
    void displayPicref(AVFilterBufferRef* picref, AVRational time_base);
 
    const char *_filename;
+   const char *_filterDescr = "scale=78:24,yadif"; //,interlace,yadif,scale=78:24
+   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_BGR32; // AV_PIX_FMT_GRAY8 or AV_PIX_FMT_YUV422P or AV_PIX_FMT_BGR32
 
    AVFormatContext *_fmtCtx = nullptr;
    AVCodecContext *_decCtx = nullptr;
    AVFrame *_frame = nullptr;
    AVFrame *_filtFrame = nullptr;
    AVPacket _packet;
-//   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV422P;
-   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_GRAY8;
 
-   const char *_filterDescr = "scale=78:24,yadif"; //,interlace
    AVFilterContext *_buffersinkCtx = nullptr;
    AVFilterContext *_buffersrcCtx = nullptr;
    AVFilterGraph *_filterGraph = nullptr;

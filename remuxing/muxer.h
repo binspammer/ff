@@ -29,7 +29,6 @@ extern "C" {
 
 class Muxer
 {
-//   typedef std::vector<std::shared_ptr<AVFilterBufferRef*>> Images;
    typedef std::vector<std::shared_ptr<AVFilterBufferRef>> Images;
 
 public:
