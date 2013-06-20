@@ -24,11 +24,11 @@ extern "C" {
 
 class Filter
 {
+public:
 //   typedef std::vector<std::shared_ptr<AVFilterBufferRef*>> Images;
    //  typedef std::vector<std::shared_ptr<uint8_t*>> Images;
    typedef std::vector<std::shared_ptr<AVFilterBufferRef>> Images;
 
-public:
    Filter(const char* dst);
    virtual ~Filter();
    void decode();
@@ -36,27 +36,28 @@ public:
 
 private:
    void init();
-   int initFilters();
-   int openInputFile();
+   void initFilters();
+   void openInputFile();
    void close();
    void displayPicref(AVFilterBufferRef* picref, AVRational time_base);
 
    const char *_filename;
-   const char *_filterDescr = "scale=78:24,yadif"; //,interlace
-//   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV422P;
-   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_GRAY8;
 
    AVFormatContext *_fmtCtx = nullptr;
    AVCodecContext *_decCtx = nullptr;
+   AVFrame *_frame = nullptr;
+   AVFrame *_filtFrame = nullptr;
+   AVPacket _packet;
+//   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV422P;
+   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_GRAY8;
+
+   const char *_filterDescr = "scale=78:24,yadif"; //,interlace
    AVFilterContext *_buffersinkCtx = nullptr;
    AVFilterContext *_buffersrcCtx = nullptr;
    AVFilterGraph *_filterGraph = nullptr;
+
    int _videoStreamIndex = -1;
    int64_t _lastPts = AV_NOPTS_VALUE;
-   int _gotFrame;
-   AVPacket _packet;
-   AVFrame *_frame = nullptr;
-   AVFrame *_filtFrame = nullptr;
 
    Images _images;
 };
