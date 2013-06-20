@@ -170,7 +170,8 @@ void Muxer::writeVideoFrame()
       pkt.data          = _dstPicture.data[0];
       pkt.size          = sizeof(AVPicture);
       
-      ret = av_interleaved_write_frame(_oc, &pkt);
+      if (av_interleaved_write_frame(_oc, &pkt) <0)
+         throw std::runtime_error("Error while writing video frame");
    }
    else {
       // encode the image
@@ -188,14 +189,10 @@ void Muxer::writeVideoFrame()
          pkt.stream_index = _videoSt->index;
          
          // Write the compressed frame to the media file.
-         ret = av_interleaved_write_frame(_oc, &pkt);
+         if (av_interleaved_write_frame(_oc, &pkt) <0)
+            throw std::runtime_error("Error while writing video frame");
       }
-      else
-         ret = 0;
    }
-   
-   if (ret != 0)
-      throw std::runtime_error("Error while writing video frame");
    
    _frameCount++;
 }
