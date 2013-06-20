@@ -1,13 +1,7 @@
 #ifndef FILTER_H
 #define FILTER_H
 
-# if __WORDSIZE == 64
-#  define INT64_C(c)    c ## L
-#  define UINT64_C(c)   c ## UL
-# else
-#  define INT64_C(c)    c ## LL
-#  define UINT64_C(c)   c ## ULL
-# endif
+#include "config.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -30,7 +24,9 @@ extern "C" {
 
 class Filter
 {
-   typedef std::vector<std::shared_ptr<AVFilterBufferRef*>> Images;
+//   typedef std::vector<std::shared_ptr<AVFilterBufferRef*>> Images;
+   //  typedef std::vector<std::shared_ptr<uint8_t*>> Images;
+   typedef std::vector<std::shared_ptr<AVFilterBufferRef>> Images;
 
 public:
    Filter(const char* dst);
@@ -63,7 +59,6 @@ private:
    AVFrame *_filtFrame = nullptr;
 
    Images _images;
-//   std::vector<std::shared_ptr<uint8_t*>> _images;
 };
 
 

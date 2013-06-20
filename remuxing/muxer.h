@@ -1,13 +1,7 @@
 #ifndef MUXER_HPP
 #define MUXER_HPP
 
-# if __WORDSIZE == 64
-#  define INT64_C(c)    c ## L
-#  define UINT64_C(c)   c ## UL
-# else
-#  define INT64_C(c)    c ## LL
-#  define UINT64_C(c)   c ## ULL
-# endif
+#include "config.h"
 
 #include <cstdio>
 #include <cstring>
@@ -35,7 +29,8 @@ extern "C" {
 
 class Muxer
 {
-   typedef std::vector<std::shared_ptr<AVFilterBufferRef*>> Images;
+//   typedef std::vector<std::shared_ptr<AVFilterBufferRef*>> Images;
+   typedef std::vector<std::shared_ptr<AVFilterBufferRef>> Images;
 
 public:
    Muxer(const char *dst, Images& images);

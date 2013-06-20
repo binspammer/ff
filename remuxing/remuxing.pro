@@ -14,5 +14,6 @@ SOURCES += \
 HEADERS += \
     demuxer.h \
     muxer.h \
-    filter.h
+    filter.h \
+    config.h
 

@@ -155,7 +155,7 @@ void Filter::decode()
    init();
 
    // read all packets
-   while (1) {
+   for( ;; ) {
       AVFilterBufferRef *picref;
       if (av_read_frame(_fmtCtx, &_packet) < 0)
          break;
@@ -182,7 +182,8 @@ void Filter::decode()
                   return;
                if (picref) {
 //                  _images.push_back( std::make_shared<uint8_t*>(*picref->data) );
-                  _images.push_back( std::make_shared<AVFilterBufferRef*>(picref) );
+//                  _images.push_back( std::make_shared<AVFilterBufferRef*>(picref) );
+                  _images.push_back( std::make_shared<AVFilterBufferRef>(*picref) );
 //                  displayPicref(picref, _buffersinkCtx->inputs[0]->time_base);
 //                  avfilter_unref_bufferp(&picref);
                }
