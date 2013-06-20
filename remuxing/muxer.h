@@ -35,7 +35,6 @@ public:
    Muxer(const char *dst, Images& images);
    virtual ~Muxer();
    void mux();
-//   void setImages(Images& images) { _images = images; }
 
 private:
    void init();
@@ -46,22 +45,24 @@ private:
    AVStream *addStream(enum AVCodecID codec_id);
    void fillYUVImage(AVPicture *pict, int frame_index, int width, int height);
 
+   const enum AVCodecID VIDEO_CODEC = AV_CODEC_ID_DNXHD;
+   const char *MUXER = "mov";
+
    const int STREAM_DURATION = 5;    // 5 seconds stream duration
    const int STREAM_FRAME_RATE = 25; // 25 images/s
    const int STREAM_NB_FRAMES;       // STREAM_DURATION * STREAM_FRAME_RATE
    const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV422P;
    const int _sws_flags = SWS_BICUBIC;
 
-   //   float _t, _tincr, _incr2;
-   //   int16_t *_samples;
    const char *_filename;
    AVOutputFormat *_fmt = nullptr;
    AVFormatContext *_oc = nullptr;
    AVCodec *_videoCodec = nullptr;
    AVFrame *_frame = nullptr;
-   AVPicture _srcPicture, _dstPicture;
    AVStream *_videoSt = nullptr;
-   double _videoPts = 0;
+   AVPicture _srcPicture;
+   AVPicture _dstPicture;
+   double _videoPts = 0.0;
    int _frameCount = 0;
    Images &_images;
 };

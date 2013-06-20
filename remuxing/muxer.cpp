@@ -44,14 +44,13 @@ catch(exception &e)
 
 void Muxer::init()
 {
-
-   // Initialize libavcodec, and register all codecs and formats.
+   // Initialize libavcodec, and register all codecs and formats
    av_register_all();
 
    // allocate the output media context
 //   avformat_alloc_output_context2(&_oc, NULL, "dnxhd", _filename);
-   _fmt = av_guess_format("mov", NULL, NULL);
-   _fmt->video_codec = AV_CODEC_ID_DNXHD;
+   _fmt = av_guess_format(MUXER, NULL, NULL);
+   _fmt->video_codec = VIDEO_CODEC;
    avformat_alloc_output_context2(&_oc, _fmt, NULL, _filename);
    if (!_oc) {
       std::cout <<"Could not deduce output format from file extension: using MPEG" <<std::endl;
@@ -62,12 +61,9 @@ void Muxer::init()
 
 //   _fmt = _oc->oformat;
 
-   // Add the audio and video streams using the default format codecs
-   // and initialize the codecs.
-   _videoSt = NULL;
+   // Add the video streams using the default format codecs and initialize the codecs.
    if (_fmt->video_codec != AV_CODEC_ID_NONE)
       _videoSt = addStream(_fmt->video_codec);
-
 
    // Now that all the parameters are set, we can open the
    // video codecs and allocate the necessary encode buffers.
@@ -92,9 +88,8 @@ void Muxer::init()
 
 void Muxer::close()
 {
-   /* Write the trailer, if any. The trailer must be written before you
-    * close the CodecContexts open when you wrote the header; otherwise
-    * av_write_trailer() may try to use memory that was freed on av_codec_close(). */
+   // Write the trailer, if any. The trailer must be written before you close the CodecContexts open when you
+   // wrote the header; otherwise av_write_trailer() may try to use memory that was freed on av_codec_close()
    av_write_trailer(_oc);
 
    // Close each codec.
@@ -112,8 +107,6 @@ void Muxer::close()
 // video output 
 void Muxer::openVideo()
 {
-   av_dump_format(_oc, 0, NULL, 1);
-   
    // open the codec
    AVCodecContext *c = _videoSt->codec;
    if ( avcodec_open2(c, _videoCodec, NULL)  < 0 )
@@ -123,18 +116,18 @@ void Muxer::openVideo()
    if ( !avcodec_alloc_frame() )
       throw std::runtime_error("Could not allocate video frame");
    
-   // Allocate the encoded raw picture.
+   // Allocate the encoded raw picture
    if( avpicture_alloc(&_dstPicture, c->pix_fmt, c->width, c->height) <0 )
       throw std::runtime_error("Could not allocate picture");
    
-   // If the output format is not the required one, then a temporary picture
-   // is needed. It is then converted to the destination output format.
+   // If the output format is not the destination one, then a temporary
+   // picture is needed. It is then converted to the required output format
    if (c->pix_fmt != STREAM_PIX_FMT
        && avpicture_alloc(&_srcPicture, STREAM_PIX_FMT, c->width, c->height) <0 )
       throw std::runtime_error("Could not allocate temporary picture");
    
    // copy data and linesize picture pointers to frame
-   //   * reinterpret_cast<AVPicture*>(frame) = dst_picture;
+   // reinterpret_cast<AVPicture*>(frame) = dst_picture
    _frame = reinterpret_cast<AVFrame*>(&_dstPicture);
 }
 
@@ -153,11 +146,10 @@ void Muxer::writeVideoFrame()
    AVCodecContext *c = _videoSt->codec;
    
    if (_frameCount < STREAM_NB_FRAMES) {
-      if (c->pix_fmt != AV_PIX_FMT_YUV422P) {
-         // as we only generate a YUV422P picture, we must
-         // convert it to the codec pixel format if needed
-         struct SwsContext *sws_ctx = sws_getContext(c->width, c->height, AV_PIX_FMT_YUV422P,
-                                                     c->width, c->height, c->pix_fmt, _sws_flags, NULL, NULL, NULL);
+      if (c->pix_fmt != STREAM_PIX_FMT) {
+         // as we only generate a YUV422P picture, we must convert it to the codec pixel format if needed
+         struct SwsContext *sws_ctx = sws_getContext(c->width, c->height, STREAM_PIX_FMT,
+                                          c->width, c->height, c->pix_fmt, _sws_flags, NULL, NULL, NULL);
          if (!sws_ctx)
             throw std::runtime_error("Could not initialize the conversion context\n");
 
