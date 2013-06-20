@@ -48,7 +48,6 @@ void Muxer::init()
    av_register_all();
 
    // allocate the output media context
-//   avformat_alloc_output_context2(&_oc, NULL, "dnxhd", _filename);
    _fmt = av_guess_format(MUXER, NULL, NULL);
    _fmt->video_codec = VIDEO_CODEC;
    avformat_alloc_output_context2(&_oc, _fmt, NULL, _filename);
@@ -61,11 +60,13 @@ void Muxer::init()
 
 //   _fmt = _oc->oformat;
 
-   // Add the video streams using the default format codecs and initialize the codecs.
+   // Add the video streams using the default
+   // format codecs and initialize the codecs
    if (_fmt->video_codec != AV_CODEC_ID_NONE)
       _videoSt = addStream(_fmt->video_codec);
 
-   // Now that all the parameters are set, we can open the video codecs and allocate the necessary encode buffers.
+   // Now that all the parameters are set, we can open the
+   // video codecs and allocate the necessary encode buffers
    if (_videoSt)
       openVideo();
 
@@ -87,16 +88,17 @@ void Muxer::init()
 
 void Muxer::close()
 {
-   // Write the trailer, if any. The trailer must be written before you close the CodecContexts open when you
-   // wrote the header; otherwise av_write_trailer() may try to use memory that was freed on av_codec_close()
+   // Write the trailer, if any. The trailer must be written before you close
+   // the CodecContexts open when you wrote the header; otherwise av_write_trailer()
+   // may try to use memory that was freed on av_codec_close()
    av_write_trailer(_oc);
 
-   // Close each codec.
+   // Close each codec
    if (_videoSt)
       closeVideo();
 
    if (!(_fmt->flags & AVFMT_NOFILE))
-      // Close the output file.
+      // Close the output file
       avio_close(_oc->pb);
 
    // free the stream
