@@ -65,8 +65,7 @@ void Muxer::init()
    if (_fmt->video_codec != AV_CODEC_ID_NONE)
       _videoSt = addStream(_fmt->video_codec);
 
-   // Now that all the parameters are set, we can open the
-   // video codecs and allocate the necessary encode buffers.
+   // Now that all the parameters are set, we can open the video codecs and allocate the necessary encode buffers.
    if (_videoSt)
       openVideo();
 

@@ -45,6 +45,7 @@ private:
    AVStream *addStream(enum AVCodecID codec_id);
    void fillYUVImage(AVPicture *pict, int frame_index, int width, int height);
 
+   const char *_filename;
    const enum AVCodecID VIDEO_CODEC = AV_CODEC_ID_DNXHD;
    const char *MUXER = "mov";
 
@@ -54,7 +55,6 @@ private:
    const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV422P;
    const int _sws_flags = SWS_BICUBIC;
 
-   const char *_filename;
    AVOutputFormat *_fmt = nullptr;
    AVFormatContext *_oc = nullptr;
    AVCodec *_videoCodec = nullptr;
@@ -62,8 +62,10 @@ private:
    AVStream *_videoSt = nullptr;
    AVPicture _srcPicture;
    AVPicture _dstPicture;
+
    double _videoPts = 0.0;
    int _frameCount = 0;
+
    Images &_images;
 };
 
