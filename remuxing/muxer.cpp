@@ -21,7 +21,7 @@ try
 
    for (;;)
    {
-      // Compute current video time.
+      // Compute current video time
       if (_videoSt)
          _videoPts = (double)_videoSt->pts.val * _videoSt->time_base.num / _videoSt->time_base.den;
       else
@@ -30,7 +30,7 @@ try
       if (!_videoSt || _videoPts >= STREAM_DURATION)
          break;
 
-      // write interleaved audio and video frames
+      // write interleaved frames
       if (_videoSt ) {
          writeVideoFrame();
          _frame->pts += av_rescale_q(1, _videoSt->codec->time_base, _videoSt->time_base);
@@ -186,7 +186,6 @@ void Muxer::writeVideoFrame()
          if (c->coded_frame->key_frame)
             pkt.flags |= AV_PKT_FLAG_KEY;
          pkt.stream_index = _videoSt->index;
-         
          // Write the compressed frame to the media file.
          if (av_interleaved_write_frame(_oc, &pkt) <0)
             throw std::runtime_error("Error while writing video frame");
