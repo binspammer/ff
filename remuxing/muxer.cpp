@@ -127,15 +127,14 @@ void Muxer::openVideo()
       throw std::runtime_error("Could not allocate temporary picture");
    
    // copy data and linesize picture pointers to frame
-   // reinterpret_cast<AVPicture*>(frame) = dst_picture
    _frame = reinterpret_cast<AVFrame*>(&_dstPicture);
 }
 
 void Muxer::closeVideo()
 {
    avcodec_close(_videoSt->codec);
-//   av_freep(&_src_picture.data[0]);
-//   av_freep(&_dst_picture.data[0]);
+//   av_freep(&_srcPicture.data[0]);
+//   av_freep(&_dstPicture.data[0]);
 //   av_freep(&_frame);
 }
 
