@@ -40,27 +40,21 @@ int Filter::openInputFile()
 {
    int ret;
    AVCodec *dec;
-   if ((ret = avformat_open_input(&_fmtCtx, _filename, NULL, NULL)) < 0) {
-      av_log(NULL, AV_LOG_ERROR, "Cannot open input file\n");
-      return ret;
-   }
-   if ((ret = avformat_find_stream_info(_fmtCtx, NULL)) < 0) {
-      av_log(NULL, AV_LOG_ERROR, "Cannot find stream information\n");
-      return ret;
-   }
+   if (avformat_open_input(&_fmtCtx, _filename, NULL, NULL) < 0)
+      throw std::runtime_error("Cannot open input file\n");
+
+   if (avformat_find_stream_info(_fmtCtx, NULL) < 0)
+      throw std::runtime_error("Cannot find stream information\n");
+
    // select the video stream
-   ret = av_find_best_stream(_fmtCtx, AVMEDIA_TYPE_VIDEO, -1, -1, &dec, 0);
-   if (ret < 0) {
-      av_log(NULL, AV_LOG_ERROR, "Cannot find a video stream in the input file\n");
-      return ret;
-   }
-   _videoStreamIndex = ret;
+   if (_videoStreamIndex = av_find_best_stream(_fmtCtx, AVMEDIA_TYPE_VIDEO, -1, -1, &dec, 0) < 0)
+      throw std::runtime_error("Cannot find a video stream in the input file");
    _decCtx = _fmtCtx->streams[_videoStreamIndex]->codec;
+
    // init the video decoder
-   if ((ret = avcodec_open2(_decCtx, dec, NULL)) < 0) {
-      av_log(NULL, AV_LOG_ERROR, "Cannot open video decoder\n");
-      return ret;
-   }
+   if ((ret = avcodec_open2(_decCtx, dec, NULL)) < 0)
+      throw std::runtime_error("Cannot open video decoder\n");
+
    return 0;
 }
 
