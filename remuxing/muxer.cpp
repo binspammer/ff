@@ -19,7 +19,8 @@ try
 {
    init();
 
-   for (;;)
+//   for (;;)
+   for (auto image(_images.begin()); image != _images.end(); ++image)
    {
       // Compute current video time
       if (_videoSt)
@@ -32,7 +33,7 @@ try
 
       // write interleaved frames
       if (_videoSt ) {
-         writeVideoFrame();
+         writeVideoFrame(image);
          _frame->pts += av_rescale_q(1, _videoSt->codec->time_base, _videoSt->time_base);
       }
    }
@@ -58,7 +59,7 @@ void Muxer::init()
    if (!_oc)
       throw std::runtime_error("Could not open the context");
 
-//   _fmt = _oc->oformat;
+   _fmt = _oc->oformat;
 
    // Add the video streams using the default
    // format codecs and initialize the codecs
@@ -140,24 +141,27 @@ void Muxer::closeVideo()
 }
 
 // media file output
-void Muxer::writeVideoFrame()
+void Muxer::writeVideoFrame(Images::iterator& image)
 {
    AVCodecContext *c = _videoSt->codec;
    
    if (_frameCount < STREAM_NB_FRAMES) {
-      if (c->pix_fmt != STREAM_PIX_FMT) {
+      if (c->pix_fmt != SRC_STREAM_PIX_FMT) {
          // as we only generate a YUV422P picture, we must convert it to the codec pixel format if needed
-         struct SwsContext *sws_ctx = sws_getContext(c->width, c->height, STREAM_PIX_FMT,
+         struct SwsContext *sws_ctx = sws_getContext(c->width, c->height, SRC_STREAM_PIX_FMT,
                                           c->width, c->height, c->pix_fmt, _sws_flags, NULL, NULL, NULL);
          if (!sws_ctx)
             throw std::runtime_error("Could not initialize the conversion context\n");
 
-         fillYUVImage(&_srcPicture, _frameCount, c->width, c->height);
+         _srcPicture.data[0] = (*image)->data[0];
+         _srcPicture.linesize[0] = (*image)->linesize[0];
          sws_scale(sws_ctx, (const uint8_t * const *)_srcPicture.data,
                    _srcPicture.linesize, 0, c->height, _dstPicture.data, _dstPicture.linesize);
       }
-      else
-         fillYUVImage(&_dstPicture, _frameCount, c->width, c->height);
+      else {
+         *_dstPicture.data = *(*image)->data;
+         *_dstPicture.linesize = *(*image)->linesize;
+      }
    }
 
    AVPacket pkt;
@@ -259,27 +263,3 @@ AVStream* Muxer::addStream(enum AVCodecID codec_id)
 
    return st;
 }
-
-// Prepare a dummy image.
-void Muxer::fillYUVImage(AVPicture *pict, int frame_index, int width, int height)
-{
-   int x, y, i;
-
-   i = frame_index;
-
-   // Y
-   for (y = 0; y < height; y++)
-      for (x = 0; x < width; x++)
-         pict->data[0][y * pict->linesize[0] + x] = x + y + i * 3;
-
-   // Cb and Cr
-   for (y = 0; y < height / 2; y++) {
-      for (x = 0; x < width / 2; x++) {
-         pict->data[1][y * pict->linesize[1] + x] = 128 + y + i * 2;
-         pict->data[2][y * pict->linesize[2] + x] = 64 + x + i * 5;
-      }
-   }
-}
-
-
-

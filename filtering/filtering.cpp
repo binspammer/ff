@@ -346,13 +346,12 @@ try
       goto end;
 
    _filename = argv[2];
-//   _filename = "filtered.dnxhd";
-//   _filename = "filtered.mov";
-
-//   _fmt = av_guess_format("mp4", NULL, NULL);
+//   _fmt = av_guess_format("mov", NULL, NULL);
+//   _fmt->video_codec = AV_CODEC_ID_DNXHD;
    // allocate the output media context
-   avformat_alloc_output_context2(&_oc, NULL, "dnxhd", NULL);
 //   avformat_alloc_output_context2(&_oc, NULL, NULL, _filename);
+   avformat_alloc_output_context2(&_oc, NULL, "dnxhd", _filename);
+//   avformat_alloc_output_context2(&_oc, _fmt, NULL, _filename);
    if (!_oc) {
       std::cout <<"Could not deduce output format from file extension: using MPEG" <<std::endl;
       avformat_alloc_output_context2(&_oc, NULL, "mpeg", _filename);

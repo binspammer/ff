@@ -25,8 +25,6 @@ extern "C" {
 class Filter
 {
 public:
-//   typedef std::vector<std::shared_ptr<AVFilterBufferRef*>> Images;
-   //  typedef std::vector<std::shared_ptr<uint8_t*>> Images;
    typedef std::vector<std::shared_ptr<AVFilterBufferRef>> Images;
 
    Filter(const char* dst);
@@ -39,11 +37,10 @@ private:
    void initFilters();
    void openInputFile();
    void close();
-   void displayPicref(AVFilterBufferRef* picref, AVRational time_base);
 
    const char *_filename;
-   const char *_filterDescr = "scale=78:24,yadif"; //,interlace,yadif,scale=78:24
-   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_BGR32; // AV_PIX_FMT_GRAY8 or AV_PIX_FMT_YUV422P or AV_PIX_FMT_BGR32
+   const char *_filterDescr = "yadif"; //,interlace,yadif,scale=78:24
+   const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_RGB444; // AV_PIX_FMT_GRAY8 AV_PIX_FMT_YUV422P AV_PIX_FMT_BGR32 AV_PIX_FMT_RGB444
 
    AVFormatContext *_fmtCtx = nullptr;
    AVCodecContext *_decCtx = nullptr;

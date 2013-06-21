@@ -92,33 +92,6 @@ void Filter::initFilters()
 
 }
 
-void Filter::displayPicref(AVFilterBufferRef *picref, AVRational time_base)
-{
-   int x, y;
-   uint8_t *p0, *p;
-   int64_t delay;
-   if (picref->pts != AV_NOPTS_VALUE) {
-      if (_lastPts != AV_NOPTS_VALUE) {
-         // sleep roughly the right amount of time; usleep is in microseconds, just like AV_TIME_BASE.
-         delay = av_rescale_q(picref->pts - _lastPts, time_base, AV_TIME_BASE_Q);
-         if (delay > 0 && delay < 1000000)
-            usleep(delay);
-      }
-      _lastPts = picref->pts;
-   }
-   // Trivial ASCII grayscale display.
-   p0 = picref->data[0];
-   puts("\033c");
-   for (y = 0; y < picref->video->h; y++) {
-      p = p0;
-      for (x = 0; x < picref->video->w; x++)
-         putchar(" .-+#"[*(p++) / 52]);
-      putchar('\n');
-      p0 += picref->linesize[0];
-   }
-   fflush(stdout);
-}
-
 void Filter::close()
 {
    avfilter_graph_free(&_filterGraph);
@@ -156,12 +129,10 @@ void Filter::decode()
                   throw std::runtime_error("Could not pull filtered pictures from the filtergraph");
                if (picref) {
                   _images.push_back( std::make_shared<AVFilterBufferRef>(*picref) );
-//                  displayPicref(picref, _buffersinkCtx->inputs[0]->time_base);
 //                  avfilter_unref_bufferp(&picref);
                }
             }
          }
       }
-//      av_free_packet(&_packet);
    }
 }
