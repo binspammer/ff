@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <iomanip>
@@ -101,12 +102,19 @@ void Filter::close()
    av_freep(&_frame);
 }
 
-void Filter::decode()
+
+Images& Filter::readVideoFrames(int frameWindow)
 {
-   init();
+//   std::for_each(_images.begin(), _images.end(), [](Image& image) {avfilter_unref_bufferp(*(*image));});
+   for (auto image(_images.begin()); image != _images.end(); ++image){
+      AVFilterBufferRef* picref = image->get();
+      avfilter_unref_bufferp(&picref);
+//      avfilter_unref_bufferp(&reinterpret_cast<AVFilterBufferRef**>(image->get()));
+   }
+   _images.erase(_images.begin(), _images.end());
 
    // read all packets
-   for(; av_read_frame(_fmtCtx, &_packet) >= 0; av_free_packet(&_packet))
+   for(int frame(0); av_read_frame(_fmtCtx, &_packet) >= 0 && frame < frameWindow; av_free_packet(&_packet), ++frame)
    {
       if (_packet.stream_index == _videoStreamIndex) {
          avcodec_get_frame_defaults(_frame);
@@ -135,4 +143,11 @@ void Filter::decode()
          }
       }
    }
+   return _images;
+}
+
+void Filter::decode()
+{
+   init();
+   readVideoFrames(1000);
 }

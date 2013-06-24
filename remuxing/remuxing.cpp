@@ -16,13 +16,27 @@ try
    }
    
    Filter filter(argv[1]);
-   filter.decode();
-   Filter::Images& images(filter.getImages());
-   std::cout <<"filter:\n    decoded " <<images.size() <<" frames from source '"<<argv[1]<<"'" <<std::endl;
+//   filter.decode();
+   filter.init();
+//   Filter::Images& images(filter.getImages());
+//   std::cout <<"filter:\n    decoded " <<images.size() <<" frames from source '"<<argv[1]<<"'" <<std::endl;
 
-   Muxer muxer(argv[2], images);
-   muxer.mux();
+   Muxer muxer(argv[2]);
+   muxer.init();
+//   Filter::Images::iterator image(images.begin());
+//   for (auto image(images.begin()); image != images.end(); ++image) {
+   for(;;)
+   {
+      Filter::Images& images = filter.readVideoFrames(10);
+      muxer.writeVideoFrames((Muxer::Images&)images);
+      if(images.empty())
+         break;
+   }
+
    return 0;
+
+//for(Filter::Image image; image = filter.readVideoFrames(); );
+
 }
 catch(std::exception &e)
 {

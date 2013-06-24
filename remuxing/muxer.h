@@ -29,19 +29,21 @@ extern "C" {
 
 class Muxer
 {
+public:
+   typedef std::shared_ptr<AVFilterBufferRef> Image;
    typedef std::vector<std::shared_ptr<AVFilterBufferRef>> Images;
 
-public:
-   Muxer(const char *dst, Images& images);
+   Muxer(const char *dst);
    virtual ~Muxer();
-   void mux();
+   void init();
+   void writeVideoFrames(Images& images);
+   void writeVideoFrame(Image& image);
 
 private:
-   void init();
+   void mux();
    void close();
    void openVideo();
    void closeVideo();
-   void writeVideoFrame(Images::iterator& image);
    AVStream *addStream(enum AVCodecID codec_id);
 
    const char *_filename;
@@ -53,7 +55,7 @@ private:
 
    const int STREAM_DURATION = 5;    // 5 seconds stream duration
    const int STREAM_FRAME_RATE = 25; // 25 images/s
-   const int STREAM_NB_FRAMES;       // STREAM_DURATION * STREAM_FRAME_RATE
+//   const int STREAM_NB_FRAMES;       // STREAM_DURATION * STREAM_FRAME_RATE
 
    AVOutputFormat *_fmt = nullptr;
    AVFormatContext *_oc = nullptr;
@@ -66,7 +68,7 @@ private:
    double _videoPts = 0.0;
    int _frameCount = 0;
 
-   Images &_images;
+//   Images &_images;
 };
 
 #endif // MUXER_HPP

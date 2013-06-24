@@ -25,21 +25,23 @@ extern "C" {
 class Filter
 {
 public:
+   typedef std::shared_ptr<AVFilterBufferRef> Image;
    typedef std::vector<std::shared_ptr<AVFilterBufferRef>> Images;
 
    Filter(const char* dst);
    virtual ~Filter();
+   void init();
    void decode();
    Images& getImages() { return _images; }
+   Images& readVideoFrames(int frameWindow = 1000);
 
 private:
-   void init();
    void initFilters();
    void openInputFile();
    void close();
 
    const char *_filename;
-   const char *_filterDescr = "yadif"; //,interlace,yadif,scale=78:24
+   const char *_filterDescr = "showinfo,yadif,decimate"; //,interlace,yadif,scale=78:24
    const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_RGB444; // AV_PIX_FMT_GRAY8 AV_PIX_FMT_YUV422P AV_PIX_FMT_BGR32 AV_PIX_FMT_RGB444
 
    AVFormatContext *_fmtCtx = nullptr;
