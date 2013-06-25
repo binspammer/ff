@@ -1,23 +1,9 @@
 #ifndef FILTER_H
 #define FILTER_H
 
-#include "config.h"
+#include "image.h"
 
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavfilter/avcodec.h>
-#include <libavfilter/avfiltergraph.h>
-#include <libavfilter/buffersink.h>
-#include <libavfilter/buffersrc.h>
-#include <libavformat/avformat.h>
-#include <libavutil/avutil.h>
-#include <libavutil/channel_layout.h>
-#include <libavutil/imgutils.h>
-#include <libavutil/log.h>
-#include <libavutil/mathematics.h>
-#include <libswscale/swscale.h>
-#include <unistd.h>
-}
+#include "libav.h"
 
 #include <memory>
 #include <vector>
@@ -25,17 +11,14 @@ extern "C" {
 class Filter
 {
 public:
-   typedef std::shared_ptr<AVFilterBufferRef> Image;
-   typedef std::vector<std::shared_ptr<AVFilterBufferRef>> Images;
-
    Filter(const char* dst);
    virtual ~Filter();
-   void init();
-   void decode();
    Images& getImages() { return _images; }
    Images& readVideoFrames(int frameWindow = 1000);
+   Image readVideoFrame();
 
 private:
+   void init();
    void initFilters();
    void openInputFile();
    void close();
@@ -58,6 +41,7 @@ private:
    int64_t _lastPts = AV_NOPTS_VALUE;
 
    Images _images;
+//   StructImages _structImages;
 };
 
 

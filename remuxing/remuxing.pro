@@ -9,11 +9,14 @@ SOURCES += \
     remuxing.cpp \
     demuxer.cpp \
     muxer.cpp \
-    filter.cpp
+    filter.cpp \
+    image.cpp
 
 HEADERS += \
     demuxer.h \
     muxer.h \
     filter.h \
-    config.h
+    config.h \
+    image.h \
+    libav.h
 

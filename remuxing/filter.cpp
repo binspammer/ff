@@ -12,6 +12,7 @@
 Filter::Filter(const char *src)
    : _filename(src)
 {
+   init();
 }
 
 Filter::~Filter()
@@ -102,19 +103,22 @@ void Filter::close()
    av_freep(&_frame);
 }
 
-
 Images& Filter::readVideoFrames(int frameWindow)
 {
-//   std::for_each(_images.begin(), _images.end(), [](Image& image) {avfilter_unref_bufferp(*(*image));});
-   for (auto image(_images.begin()); image != _images.end(); ++image){
-      AVFilterBufferRef* picref = image->get();
-      avfilter_unref_bufferp(&picref);
-//      avfilter_unref_bufferp(&reinterpret_cast<AVFilterBufferRef**>(image->get()));
-   }
    _images.erase(_images.begin(), _images.end());
+   for(int frame(0); frame < frameWindow; ++frame)
+   {
+      Image image = readVideoFrame();
+      if(image == nullptr)
+         break;
+      _images.push_back(image);
+   }
+   return _images;
+}
 
-   // read all packets
-   for(int frame(0); av_read_frame(_fmtCtx, &_packet) >= 0 && frame < frameWindow; av_free_packet(&_packet), ++frame)
+Image Filter::readVideoFrame()
+{
+   for(; av_read_frame(_fmtCtx, &_packet) >= 0; av_free_packet(&_packet))
    {
       if (_packet.stream_index == _videoStreamIndex) {
          avcodec_get_frame_defaults(_frame);
@@ -135,19 +139,20 @@ Images& Filter::readVideoFrames(int frameWindow)
                   break;
                if (ret < 0)
                   throw std::runtime_error("Could not pull filtered pictures from the filtergraph");
+
                if (picref) {
-                  _images.push_back( std::make_shared<AVFilterBufferRef>(*picref) );
-//                  avfilter_unref_bufferp(&picref);
+                  Image image(new ImageImpl);
+                  av_image_alloc(image->data, image->linesizes,
+                       picref->video->w, picref->video->h, STREAM_PIX_FMT, 8);
+                  av_image_copy(image->data, image->linesizes, (const uint8_t **)picref->data,
+                       (const int*)picref->linesize, STREAM_PIX_FMT, picref->video->w, picref->video->h);
+
+                  avfilter_unref_bufferp(&picref);
+                  return image;
                }
             }
          }
       }
    }
-   return _images;
-}
-
-void Filter::decode()
-{
-   init();
-   readVideoFrames(1000);
+   return nullptr;
 }

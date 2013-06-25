@@ -4,42 +4,13 @@ using namespace std;
 
 Muxer::Muxer(const char *dst)
    : _filename(dst)
-//   , _images(images)
 {
+   init();
 }
 
 Muxer::~Muxer()
 {
    close();
-}
-
-void Muxer::mux()
-try
-{
-   init();
-
-//   for (;;)
-//   for (auto image(_images.begin()); image != _images.end(); ++image)
-//   {
-//      // Compute current video time
-//      if (_videoSt)
-//         _videoPts = (double)_videoSt->pts.val * _videoSt->time_base.num / _videoSt->time_base.den;
-//      else
-//         _videoPts = 0.0;
-
-//      if (!_videoSt )
-//         break;
-
-//      // write interleaved frames
-//      if (_videoSt ) {
-//         writeVideoFrame(image);
-//         _frame->pts += av_rescale_q(1, _videoSt->codec->time_base, _videoSt->time_base);
-//      }
-//   }
-}
-catch(exception &e)
-{
-   std::cerr <<e.what() <<std::endl;
 }
 
 void Muxer::init()
@@ -144,6 +115,7 @@ void Muxer::writeVideoFrames(Images& images)
 {
    for (auto image(images.begin()); image != images.end(); ++image)
       writeVideoFrame(*image);
+//   std::for_each(images.begin(), images.end(), &writeVideoFrame);
 }
 
 void Muxer::writeVideoFrame(Image& image)
@@ -160,13 +132,13 @@ void Muxer::writeVideoFrame(Image& image)
             throw std::runtime_error("Could not initialize the conversion context\n");
 
          *_srcPicture.data = *image->data;
-         *_srcPicture.linesize = *image->linesize;
+         *_srcPicture.linesize = *image->linesizes;
          sws_scale(sws_ctx, (const uint8_t * const *)_srcPicture.data,
                    _srcPicture.linesize, 0, c->height, _dstPicture.data, _dstPicture.linesize);
       }
       else {
          *_dstPicture.data = *image->data;
-         *_dstPicture.linesize = *image->linesize;
+         *_dstPicture.linesize = *image->linesizes;
       }
 //   }
 
@@ -203,6 +175,7 @@ void Muxer::writeVideoFrame(Image& image)
    }
     _frame->pts += av_rescale_q(1, _videoSt->codec->time_base, _videoSt->time_base);
    _frameCount++;
+   av_free_packet(&pkt);
 }
 
 // Add an output stream.
