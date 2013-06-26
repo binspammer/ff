@@ -5,9 +5,6 @@
 
 #include "libav.h"
 
-#include <memory>
-#include <vector>
-
 class Filter
 {
 public:
@@ -24,7 +21,7 @@ private:
    void close();
 
    const char *_filename;
-   const char *_filterDescr = "showinfo,yadif,decimate"; //,interlace,yadif,scale=78:24
+   const char *_filterDescr = "yadif,decimate"; //showinfo,interlace,yadif,scale=78:24
    const enum AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_RGB444; // AV_PIX_FMT_GRAY8 AV_PIX_FMT_YUV422P AV_PIX_FMT_BGR32 AV_PIX_FMT_RGB444
 
    AVFormatContext *_fmtCtx = nullptr;
@@ -41,8 +38,6 @@ private:
    int64_t _lastPts = AV_NOPTS_VALUE;
 
    Images _images;
-//   StructImages _structImages;
 };
-
 
 #endif // FILTER_H

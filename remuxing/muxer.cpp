@@ -1,9 +1,21 @@
 #include "muxer.h"
 
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <memory>
+#include <vector>
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <iomanip>
+#include <exception>
+#include <stdexcept>
+
 using namespace std;
 
 Muxer::Muxer(const char *dst)
-   : _filename(dst)
+: _filename(dst)
 {
    init();
 }
@@ -45,8 +57,8 @@ void Muxer::init()
 
    // open the output file, if needed
    if ( !(_fmt->flags & AVFMT_NOFILE)
-      && avio_open(&_oc->pb, _filename, AVIO_FLAG_WRITE) < 0 )
-         throw std::runtime_error("Could not open file");
+        && avio_open(&_oc->pb, _filename, AVIO_FLAG_WRITE) < 0 )
+      throw std::runtime_error("Could not open file");
 
    // Write the stream header, if any.
    if (avformat_write_header(_oc, NULL) < 0)
@@ -105,9 +117,9 @@ void Muxer::openVideo()
 void Muxer::closeVideo()
 {
    avcodec_close(_videoSt->codec);
-//   av_freep(&_srcPicture.data[0]);
-//   av_freep(&_dstPicture.data[0]);
-//   av_freep(&_frame);
+   //   av_freep(&_srcPicture.data[0]);
+   //   av_freep(&_dstPicture.data[0]);
+   //   av_freep(&_frame);
 }
 
 // media file output
@@ -115,7 +127,7 @@ void Muxer::writeVideoFrames(Images& images)
 {
    for (auto image(images.begin()); image != images.end(); ++image)
       writeVideoFrame(*image);
-//   std::for_each(images.begin(), images.end(), &writeVideoFrame);
+   //   std::for_each(images.begin(), images.end(), &writeVideoFrame);
 }
 
 void Muxer::writeVideoFrame(Image& image)
@@ -123,24 +135,24 @@ void Muxer::writeVideoFrame(Image& image)
    AVCodecContext *c = _videoSt->codec;
    _videoPts = (double)_videoSt->pts.val * _videoSt->time_base.num / _videoSt->time_base.den;
 
-//   if (_frameCount < STREAM_NB_FRAMES) {
-      if (c->pix_fmt != SRC_STREAM_PIX_FMT) {
-         // as we only generate a YUV422P picture, we must convert it to the codec pixel format if needed
-         struct SwsContext *sws_ctx = sws_getContext(c->width, c->height, SRC_STREAM_PIX_FMT,
-                                          c->width, c->height, c->pix_fmt, _sws_flags, NULL, NULL, NULL);
-         if (!sws_ctx)
-            throw std::runtime_error("Could not initialize the conversion context\n");
+   //   if (_frameCount < STREAM_NB_FRAMES) {
+   if (c->pix_fmt != SRC_STREAM_PIX_FMT) {
+      // as we only generate a YUV422P picture, we must convert it to the codec pixel format if needed
+      struct SwsContext *sws_ctx = sws_getContext(c->width, c->height, SRC_STREAM_PIX_FMT,
+                                                  c->width, c->height, c->pix_fmt, _sws_flags, NULL, NULL, NULL);
+      if (!sws_ctx)
+         throw std::runtime_error("Could not initialize the conversion context\n");
 
-         *_srcPicture.data = *image->data;
-         *_srcPicture.linesize = *image->linesizes;
-         sws_scale(sws_ctx, (const uint8_t * const *)_srcPicture.data,
-                   _srcPicture.linesize, 0, c->height, _dstPicture.data, _dstPicture.linesize);
-      }
-      else {
-         *_dstPicture.data = *image->data;
-         *_dstPicture.linesize = *image->linesizes;
-      }
-//   }
+      *_srcPicture.data = *image->data;
+      *_srcPicture.linesize = *image->linesizes;
+      sws_scale(sws_ctx, (const uint8_t * const *)_srcPicture.data,
+                _srcPicture.linesize, 0, c->height, _dstPicture.data, _dstPicture.linesize);
+   }
+   else {
+      *_dstPicture.data = *image->data;
+      *_dstPicture.linesize = *image->linesizes;
+   }
+   //   }
 
    AVPacket pkt;
    av_init_packet(&pkt);
@@ -173,7 +185,7 @@ void Muxer::writeVideoFrame(Image& image)
             throw std::runtime_error("Error while writing video frame");
       }
    }
-    _frame->pts += av_rescale_q(1, _videoSt->codec->time_base, _videoSt->time_base);
+   _frame->pts += av_rescale_q(1, _videoSt->codec->time_base, _videoSt->time_base);
    _frameCount++;
    av_free_packet(&pkt);
 }

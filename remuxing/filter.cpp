@@ -10,7 +10,7 @@
 #include <stdexcept>
 
 Filter::Filter(const char *src)
-   : _filename(src)
+: _filename(src)
 {
    init();
 }
@@ -143,9 +143,9 @@ Image Filter::readVideoFrame()
                if (picref) {
                   Image image(new ImageImpl);
                   av_image_alloc(image->data, image->linesizes,
-                       picref->video->w, picref->video->h, STREAM_PIX_FMT, 8);
+                                 picref->video->w, picref->video->h, STREAM_PIX_FMT, 8);
                   av_image_copy(image->data, image->linesizes, (const uint8_t **)picref->data,
-                       (const int*)picref->linesize, STREAM_PIX_FMT, picref->video->w, picref->video->h);
+                                (const int*)picref->linesize, STREAM_PIX_FMT, picref->video->w, picref->video->h);
 
                   avfilter_unref_bufferp(&picref);
                   return image;
