@@ -20,7 +20,14 @@ try
 
    for(;;)
    {
-      Images& images = filter.readVideoFrames(10);
+      int windowSize(10);
+      Images& images = filter.readVideoFrames(windowSize);
+
+      int index(0);
+      // Defliciring images here accessing by index in [0,windowSize-1] range
+      images[index]->data[0];
+      images[index]->linesizes[0];
+
       if(images.empty()) break;
       muxer.writeVideoFrames((Images&)images);
    }
