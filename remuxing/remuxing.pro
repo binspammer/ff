@@ -6,11 +6,11 @@ CONFIG -= qt
 include(../ff.prf)
 
 SOURCES += \
-    remuxing.cpp \
     demuxer.cpp \
     muxer.cpp \
     filter.cpp \
-    image.cpp
+    image.cpp \
+    remuxer.cpp
 
 HEADERS += \
     demuxer.h \

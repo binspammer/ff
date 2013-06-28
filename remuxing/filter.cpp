@@ -123,7 +123,8 @@ Image Filter::readVideoFrame()
       if (_packet.stream_index == _videoStreamIndex) {
          avcodec_get_frame_defaults(_frame);
          int _gotFrame(0);
-         if (avcodec_decode_video2(_decCtx, _frame, &_gotFrame, &_packet) < 0)
+         int len(0);
+         if ( (len = avcodec_decode_video2(_decCtx, _frame, &_gotFrame, &_packet)) < 0)
             throw std::runtime_error("Error decoding video");
          if (_gotFrame) {
             _frame->pts = av_frame_get_best_effort_timestamp(_frame);
