@@ -131,10 +131,10 @@ Image Filter::readVideoFrame()
             // push the decoded frame into the filtergraph
             if (av_buffersrc_add_frame(_buffersrcCtx, _frame, 0) < 0)
                throw std::runtime_error("Error while feeding the filtergraph");
-            // pull filtered pictures from the filtergraph
             for( ;; )
             {
                AVFilterBufferRef *picref;
+            // pull filtered pictures from the filtergraph
                int ret = av_buffersink_get_buffer_ref(_buffersinkCtx, &picref, 0);
                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                   break;
